@@ -20,6 +20,7 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE) {
     spectral.addRules(defaultRules());
     // const oas = require(join(GITHUB_WORKSPACE, 'oas.json'))
     const result = spectral.run({});
+    console.log(result);
 
 
     return octokit.checks.update({
