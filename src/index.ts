@@ -28,7 +28,7 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE || !
 
     const payload = require(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
     const { results } = spectral.run(payload);
-    console.log(results);
+
     // @ts-ignore
     const annotations: Octokit.ChecksListAnnotationsParams[] = results.map(validationResult => ({
       annotation_level: validationResult.severity === ValidationSeverity.Error ? 'failure' : validationResult.severity === ValidationSeverity.Warn ? 'warning' : 'notice',
