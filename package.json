@@ -21,6 +21,9 @@
     "typescript": "^3.3.3"
   },
   "dependencies": {
+    "@octokit/rest": "^16.15.0",
+    "@stoplight/spectral": "^1.0.2",
+    "@types/node": "^11.9.4",
     "funfix": "^7.0.1"
   }
 }
