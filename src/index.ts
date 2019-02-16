@@ -28,7 +28,8 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE || !
       owner,
       repo,
       status: 'completed',
-      conclusion: 'failure'
+      conclusion: 'failure',
+      completed_at: (new Date()).toISOString()
     });
   }).catch(e => { console.error(e); process.exit(1) });
 
