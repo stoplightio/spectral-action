@@ -16,11 +16,16 @@ COPY tsconfig.json ./tsconfig.json
 
 RUN ./node_modules/.bin/tsc
 
-FROM node:10-slim
+FROM node:10 as installer
 
 ENV NODE_ENV production
-COPY --from=builder ./node_modules ./node_modules
-COPY --from=builder ./dist ./dist
 COPY package.json package.json
+RUN npm install --production
+
+FROM node:10 as runtime
+ENV NODE_ENV production
+COPY package.json package.json
+COPY --from=builder ./dist ./dist
+COPY --from=installer ./node_modules ./node_modules
 
 ENTRYPOINT [ "npm", "start"]
