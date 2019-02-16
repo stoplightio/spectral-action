@@ -2,10 +2,10 @@
   "name": "spectral-action",
   "version": "1.0.0",
   "description": "Lint your JSON and OAS2/3 files",
-  "main": "src/index.js",
+  "main": "src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/index.js"
+    "start": "node dist/index.js"
   },
   "repository": {
     "type": "git",

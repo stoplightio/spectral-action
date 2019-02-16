@@ -11,5 +11,6 @@ ENV NODE_ENV production
 COPY package.json package.json
 RUN npm install --production
 COPY src src
+RUN npx tsc
 
 ENTRYPOINT [ "npm", "start"]
