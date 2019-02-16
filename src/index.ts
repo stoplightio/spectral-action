@@ -16,21 +16,27 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE || !
 
   const octokit = new Octokit({ auth: `token ${GITHUB_TOKEN}` });
 
-  octokit.checks.create({ owner, repo, name: 'Spectral Lint', head_sha: GITHUB_SHA }).then(check => {
+  octokit.checks.create({ owner, repo, name: 'Spectral Lint Check', head_sha: GITHUB_SHA }).then(check => {
     const spectral = new Spectral();
     spectral.addRules(defaultRules());
     const payload = require(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
-    const result = spectral.run(payload);
-    console.log(result);
+    const { results } = spectral.run(payload);
+
+    console.log(results);
 
     return octokit.checks.update({
       check_run_id: check.data.id,
       owner,
+      name: 'Spectral Lint Check',
       repo,
       status: 'completed',
       conclusion: 'failure',
-      completed_at: (new Date()).toISOString()
+      completed_at: (new Date()).toISOString(),
+      output: {
+        title: 'Spectral Lint Check',
+        summary: 'This was horrible',
+      }
     });
-  }).catch(e => { console.error(e); process.exit(1) });
+  }).then(() => console.log("Completed")).catch(e => { console.error(e); process.exit(1) });
 
 }
