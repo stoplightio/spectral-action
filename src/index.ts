@@ -1,7 +1,8 @@
 import * as Octokit from '@octokit/rest'
 import { Spectral } from '@stoplight/spectral'
 import { join } from 'path'
-import { defaultRules } from '@stoplight/spectral/rulesets/index'
+import { defaultRules } from '@stoplight/spectral/rulesets'
+import { functions } from '@stoplight/spectral/functions'
 import { ValidationSeverity } from '@stoplight/types/validations';
 
 const { GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, SPECTRAL_FILE_PATH } = process.env
@@ -20,6 +21,8 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE || !
   octokit.checks.create({ owner, repo, name: 'Spectral Lint Check', head_sha: GITHUB_SHA }).then(check => {
     const spectral = new Spectral();
     spectral.addRules(defaultRules());
+    spectral.addFunctions(functions);
+
     const payload = require(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
     const { results } = spectral.run(payload);
 
