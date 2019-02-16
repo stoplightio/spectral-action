@@ -4,7 +4,8 @@
   "description": "Lint your JSON and OAS2/3 files",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js"
   },
   "repository": {
     "type": "git",
@@ -15,5 +16,11 @@
   "bugs": {
     "url": "https://github.com/XVincentX/spectral-action/issues"
   },
-  "homepage": "https://github.com/XVincentX/spectral-action#readme"
+  "homepage": "https://github.com/XVincentX/spectral-action#readme",
+  "devDependencies": {
+    "typescript": "^3.3.3"
+  },
+  "dependencies": {
+    "funfix": "^7.0.1"
+  }
 }
