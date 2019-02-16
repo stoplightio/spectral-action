@@ -1,8 +1,8 @@
 import * as Octokit from '@octokit/rest'
 import { Spectral } from '@stoplight/spectral'
 import { join } from 'path'
-import { defaultRules } from '@stoplight/spectral/rulesets'
-import { functions } from '@stoplight/spectral/functions'
+import { oas2Functions, oas2Rules } from '@stoplight/spectral/rulesets/oas2';
+import { oas3Functions, oas3Rules } from '@stoplight/spectral/rulesets/oas3';
 import { ValidationSeverity } from '@stoplight/types/validations';
 
 const { GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, SPECTRAL_FILE_PATH } = process.env
@@ -20,15 +20,18 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE || !
 
   octokit.checks.create({ owner, repo, name: 'Spectral Lint Check', head_sha: GITHUB_SHA }).then(check => {
     const spectral = new Spectral();
-    spectral.addRules(defaultRules());
-    spectral.addFunctions(functions);
+    spectral.addFunctions(oas2Functions());
+    spectral.addRules(oas2Rules());
+    spectral.addFunctions(oas3Functions());
+    spectral.addRules(oas3Rules());
+
 
     const payload = require(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
     const { results } = spectral.run(payload);
-
+    console.log(results);
     // @ts-ignore
     const annotations: Octokit.ChecksListAnnotationsParams[] = results.map(validationResult => ({
-      annotation_level: validationResult.severity === ValidationSeverity.Error ? 'failure' : 'warning',
+      annotation_level: validationResult.severity === ValidationSeverity.Error ? 'failure' : validationResult.severity === ValidationSeverity.Warn ? 'warning' : 'notice',
       message: validationResult.message,
       title: validationResult.name,
       start_line: validationResult.location ? validationResult.location.start.line : 0,
