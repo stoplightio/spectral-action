@@ -1,10 +1,11 @@
 import * as Octokit from '@octokit/rest'
 import { Spectral } from '@stoplight/spectral'
+import { join } from 'path'
 import { defaultRules } from '@stoplight/spectral/rulesets/index'
 
-const { GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE } = process.env
+const { GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, SPECTRAL_FILE_PATH } = process.env
 
-if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE) {
+if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE || !SPECTRAL_FILE_PATH) {
   console.error('Missing required environment variables');
   process.exit(1);
 } else {
@@ -18,10 +19,9 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE) {
   octokit.checks.create({ owner, repo, name: 'Spectral Lint', head_sha: GITHUB_SHA }).then(check => {
     const spectral = new Spectral();
     spectral.addRules(defaultRules());
-    // const oas = require(join(GITHUB_WORKSPACE, 'oas.json'))
-    const result = spectral.run({});
+    const payload = require(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
+    const result = spectral.run(payload);
     console.log(result);
-
 
     return octokit.checks.update({
       check_run_id: check.data.id,

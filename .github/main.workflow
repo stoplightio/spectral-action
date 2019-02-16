@@ -1,4 +1,4 @@
-workflow "New workflow" {
+workflow "Build Pipeline" {
   on = "push"
   resolves = ["Spectral checks"]
 }
