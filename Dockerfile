@@ -25,7 +25,7 @@ RUN npm install --production
 FROM node:10 as runtime
 ENV NODE_ENV production
 COPY package.json package.json
-COPY --from=builder ./dist ./dist
-COPY --from=installer ./node_modules ./node_modules
+COPY --from=builder ./dist ${GITHUB_WORKSPACE:-./}dist
+COPY --from=installer ./node_modules ${GITHUB_WORKSPACE:-./}node_modules
 
 ENTRYPOINT [ "npm", "start"]
