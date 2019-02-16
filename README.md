@@ -1,3 +1,3 @@
 # Spectral Lint Action
 
-Nasino
+Nasino pariosino
