@@ -1,4 +1,4 @@
-FROM node:10-slim
+FROM node:10
 
 LABEL com.github.actions.name="Spectral checks"
 LABEL com.github.actions.description="Lint your JSON and OAS2/3 files"
