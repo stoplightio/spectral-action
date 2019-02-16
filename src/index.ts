@@ -32,7 +32,7 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE || !
     // @ts-ignore
     const annotations: Octokit.ChecksListAnnotationsParams[] = results.map(validationResult => ({
       annotation_level: validationResult.severity === ValidationSeverity.Error ? 'failure' : validationResult.severity === ValidationSeverity.Warn ? 'warning' : 'notice',
-      message: validationResult.message,
+      message: validationResult.summary,
       title: validationResult.name,
       start_line: validationResult.location ? validationResult.location.start.line : 0,
       end_line: validationResult.location && validationResult.location.end ? validationResult.location.end.line : 0,
