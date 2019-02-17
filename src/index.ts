@@ -1,6 +1,9 @@
 import * as Octokit from '@octokit/rest'
 import { Spectral } from '@stoplight/spectral'
 import { join } from 'path'
+import { pathToPointer } from "@stoplight/json";
+import { parseWithPointers } from "@stoplight/json/parseWithPointers";
+import { readFileSync } from 'fs'
 import { oas2Functions, oas2Rules } from '@stoplight/spectral/rulesets/oas2';
 import { oas3Functions, oas3Rules } from '@stoplight/spectral/rulesets/oas3';
 import { ValidationSeverity } from '@stoplight/types/validations';
@@ -26,20 +29,26 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE || !
     spectral.addRules(oas3Rules());
 
 
-    const payload = require(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
-    const { results } = spectral.run(payload);
+    const fileContent = readFileSync(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH), { encoding: 'utf8' })
+    const parsed = parseWithPointers(fileContent);
+    const { results } = spectral.run(parsed.data);
 
     // @ts-ignore
-    const annotations: Octokit.ChecksListAnnotationsParams[] = results.map(validationResult => ({
-      annotation_level: validationResult.severity === ValidationSeverity.Error ? 'failure' : validationResult.severity === ValidationSeverity.Warn ? 'warning' : 'notice',
-      message: validationResult.summary,
-      title: validationResult.name,
-      start_line: validationResult.location ? validationResult.location.start.line : 0,
-      end_line: validationResult.location && validationResult.location.end ? validationResult.location.end.line : 0,
-      start_column: validationResult.location ? validationResult.location.start.column : undefined,
-      end_column: validationResult.location && validationResult.location.end && validationResult.location.end.column ? validationResult.location.end.column : undefined,
-      path: join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH),
-    }));
+    const annotations: Octokit.ChecksListAnnotationsParams[] = results.map(validationResult => {
+      const path = pathToPointer(validationResult.path as string[]).slice(1);
+      const position = parsed.pointers[path];
+
+      return {
+        annotation_level: validationResult.severity === ValidationSeverity.Error ? 'failure' : validationResult.severity === ValidationSeverity.Warn ? 'warning' : 'notice',
+        message: validationResult.summary,
+        title: validationResult.name,
+        start_line: position ? position.start.line : 0,
+        end_line: position && position.end ? position.end.line : 0,
+        start_column: position && position.start.column ? position.start.column : undefined,
+        end_column: position && position.end && position.end.column ? position.end.column : undefined,
+        path: join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH),
+      }
+    });
 
     // @ts-ignore
     return octokit.checks.update({
