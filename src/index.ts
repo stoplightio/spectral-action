@@ -31,7 +31,7 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE || !
 
     const fileContent = readFileSync(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH), { encoding: 'utf8' })
     const parsed = parseWithPointers(fileContent);
-    const { results } = spectral.run(parsed.data);
+    const { results } = spectral.run(parsed.data, { resolvedTarget: parsed.data });
 
     // @ts-ignore
     const annotations: Octokit.ChecksListAnnotationsParams[] = results.map(validationResult => {
