@@ -51,7 +51,7 @@ if (!GITHUB_EVENT_PATH || !GITHUB_TOKEN || !GITHUB_SHA || !GITHUB_WORKSPACE || !
           end_line: position && position.end ? position.end.line : 0,
           start_column: position && position.start.column ? position.start.column : undefined,
           end_column: position && position.end && position.end.column ? position.end.column : undefined,
-          path: join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH)
+          path: SPECTRAL_FILE_PATH
         }
       });
 
