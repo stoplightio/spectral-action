@@ -12,7 +12,7 @@ import { IOEither, tryCatch2v } from 'fp-ts/lib/IOEither';
 import { fromNullable } from 'fp-ts/lib/Option';
 import { IO } from 'fp-ts/lib/IO';
 import { Task } from 'fp-ts/lib/Task';
-import { fromIOEither } from 'fp-ts/lib/TaskEither';
+import { fromIOEither, tryCatch } from 'fp-ts/lib/TaskEither';
 import { Either } from 'fp-ts/lib/Either';
 import * as t from 'io-ts'
 import { failure } from 'io-ts/lib/PathReporter'
@@ -78,58 +78,56 @@ createConfigFromEnv
 
     const octokit = tryCatch2v(() => new Octokit({ auth: `token ${GITHUB_TOKEN}` }), r => String(r));
 
-    map2(repository, octokit, ({ owner, repo }, kit) => tryCatch2v(() => kit.checks.create({ owner, repo, name: 'Spectral Lint Check', head_sha: GITHUB_SHA }), e => String(e)))
-      .chain(check => tryCatch2v(() => readFileSync(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH), { encoding: 'utf8' }), e => String(e)))
-      .chain(fileContent => tryCatch2v(() => parseWithPointers(fileContent), e => String(e)))
-      .chain(parsed => tryCatch2v(() => ({ parsed, results: createSpectral().run(parsed.data, { resolvedTarget: parsed.data }).results }), e => String(e)))
-      .map(({ results, parsed }) => {
-        const defaultAnnotation: Required<IPathPosition> = {
-          start: { line: 0, column: undefined },
-          end: { line: 0, column: undefined }
-        };
+    map2(repository, octokit, ({ owner, repo }, kit) =>
+      tryCatch(() => kit.checks.create({ owner, repo, name: 'Spectral Lint Check', head_sha: GITHUB_SHA }), e => String(e))
+        .chain(check =>
+          fromIOEither(tryCatch2v(() => readFileSync(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH), { encoding: 'utf8' }), e => String(e))
+            .chain(fileContent => tryCatch2v(() => parseWithPointers(fileContent), e => String(e)))
+            .chain(parsed => tryCatch2v(() => ({ parsed, results: createSpectral().run(parsed.data, { resolvedTarget: parsed.data }).results }), e => String(e)))
+            .map(({ results, parsed }) => {
+              const defaultAnnotation: Required<IPathPosition> = {
+                start: { line: 0, column: undefined },
+                end: { line: 0, column: undefined }
+              };
 
-        const annotations: Octokit.ChecksUpdateParamsOutputAnnotations[] = results.map(validationResult => {
-          const path = pathToPointer(validationResult.path as string[]).slice(1);
-          const position = fromNullable(parsed.pointers[path])
-            .filter(isDefined)
-            .map(pointer => ({ ...defaultAnnotation, ...pointer }))
-            .getOrElse(defaultAnnotation);
+              const annotations: Octokit.ChecksUpdateParamsOutputAnnotations[] = results.map(validationResult => {
+                const path = pathToPointer(validationResult.path as string[]).slice(1);
+                const position = fromNullable(parsed.pointers[path])
+                  .filter(isDefined)
+                  .map(pointer => ({ ...defaultAnnotation, ...pointer }))
+                  .getOrElse(defaultAnnotation);
 
-          const annotation_level: "notice" | "warning" | "failure"
-            = validationResult.severity === ValidationSeverity.Error ? 'failure'
-              : validationResult.severity === ValidationSeverity.Warn ? 'warning' : 'notice';
+                const annotation_level: "notice" | "warning" | "failure"
+                  = validationResult.severity === ValidationSeverity.Error ? 'failure'
+                    : validationResult.severity === ValidationSeverity.Warn ? 'warning' : 'notice';
 
-          return {
-            annotation_level,
-            message: validationResult.summary,
-            title: validationResult.name,
-            start_line: position.start.line,
-            end_line: position.end.line,
-            start_column: position.start.column,
-            end_column: position.end.column,
-            path: SPECTRAL_FILE_PATH
-          }
-        })
+                return {
+                  annotation_level,
+                  message: validationResult.summary,
+                  title: validationResult.name,
+                  start_line: position.start.line,
+                  end_line: position.end.line,
+                  start_column: position.start.column,
+                  end_column: position.end.column,
+                  path: SPECTRAL_FILE_PATH
+                }
+              })
 
-
-        return annotations;
-
-      }).map(annotations =>
-        new Task(() => kit.checks.update({
-          check_run_id: check.data.id,
-          owner,
-          name: 'Spectral Lint Check',
-          repo,
-          status: 'completed',
-          conclusion: 'failure',
-          completed_at: (new Date()).toISOString(),
-          output: {
-            title: 'Spectral Lint Check',
-            summary: 'This was horrible',
-            annotations
-          }
-        })))
-
+              return new Task(() => kit.checks.update({
+                check_run_id: check.data.id,
+                owner,
+                name: 'Spectral Lint Check',
+                repo,
+                status: 'completed',
+                conclusion: 'failure',
+                completed_at: (new Date()).toISOString(),
+                output: {
+                  title: 'Spectral Lint Check',
+                  summary: 'This was horrible',
+                  annotations
+                }
+              }))
+            }))))
   })
   .mapLeft(e => failure(e).map(console.error))
   .run();
