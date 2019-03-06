@@ -13,7 +13,14 @@
       "sourceMaps": true,
       "outFiles": [
         "${workspaceFolder}/dist/*.js"
-      ]
+      ],
+      "env": {
+        "GITHUB_EVENT_PATH": "path",
+        "GITHUB_TOKEN": "path",
+        "GITHUB_SHA": "path",
+        "GITHUB_WORKSPACE": "path",
+        "SPECTRAL_FILE_PATH": "path",
+      }
     }
   ]
 }

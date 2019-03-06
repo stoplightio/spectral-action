@@ -78,8 +78,8 @@ createConfigFromEnv
 
     const octokit = tryCatch2v(() => new Octokit({ auth: `token ${GITHUB_TOKEN}` }), r => String(r));
 
-    map2(repository, octokit, ({ owner, repo }, kit) =>
-      tryCatch(() => kit.checks.create({ owner, repo, name: 'Spectral Lint Check', head_sha: GITHUB_SHA }), e => String(e))
+    map2(repository, octokit, ({ owner, repo }, kit) => {
+      return tryCatch(() => kit.checks.create({ owner, repo, name: 'Spectral Lint Check', head_sha: GITHUB_SHA }), e => String(e))
         .chain(check =>
           fromIOEither(tryCatch2v(() => readFileSync(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH), { encoding: 'utf8' }), e => String(e))
             .chain(fileContent => tryCatch2v(() => parseWithPointers(fileContent), e => String(e)))
@@ -127,7 +127,10 @@ createConfigFromEnv
                   annotations
                 }
               }))
-            }))))
+            })
+          )
+        )
+    }).mapLeft(console.error)
   })
   .mapLeft(e => failure(e).map(console.error))
   .run();
