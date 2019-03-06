@@ -15,11 +15,11 @@ import { Task } from 'fp-ts/lib/Task';
 import { fromIOEither, tryCatch } from 'fp-ts/lib/TaskEither';
 import { Either } from 'fp-ts/lib/Either';
 import * as t from 'io-ts'
-import { failure } from 'io-ts/lib/PathReporter'
+import { error, log } from 'console';
+import { failure } from 'fp-ts/lib/Validation';
 
 const map2 = <A, B, C>(fa: IOEither<unknown, A>, fb: IOEither<unknown, B>, f: (a: A, b: B) => C): IOEither<unknown, C> =>
   fa.chain(a => fb.map(b => f(a, b)))
-
 
 const Config = t.strict({
   GITHUB_EVENT_PATH: t.string,
@@ -78,7 +78,7 @@ createConfigFromEnv
 
     const octokit = tryCatch2v(() => new Octokit({ auth: `token ${GITHUB_TOKEN}` }), r => String(r));
 
-    map2(repository, octokit, ({ owner, repo }, kit) => {
+    return map2(repository, octokit, ({ owner, repo }, kit) => {
       return tryCatch(() => kit.checks.create({ owner, repo, name: 'Spectral Lint Check', head_sha: GITHUB_SHA }), e => String(e))
         .chain(check =>
           fromIOEither(tryCatch2v(() => readFileSync(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH), { encoding: 'utf8' }), e => String(e))
@@ -130,7 +130,10 @@ createConfigFromEnv
             })
           )
         )
-    }).mapLeft(console.error)
-  })
-  .mapLeft(e => failure(e).map(console.error))
-  .run();
+    })
+  }).run()
+  .then(result => result.fold(
+    err => error(failure(err)),
+    () => log('Worked fine')
+  )
+  ).catch(error);
