@@ -53,7 +53,7 @@ const getEnv: IO<NodeJS.ProcessEnv> = new IO(() => process.env);
 const getConfig: IO<Either<t.Errors, Config>> = getEnv.map(env => Config.decode(env));
 const createConfigFromEnv = fromIOEither(new IOEither(getConfig));
 
-createConfigFromEnv
+const program = createConfigFromEnv
   .mapLeft(errors => failure(errors).join("\n"))
   .chain(({ GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, SPECTRAL_FILE_PATH }) => {
     const getRepositoryInfoFromEvent = fromIOEither(
@@ -76,28 +76,45 @@ createConfigFromEnv
       e => String(e)
     );
 
-    const parseJsonWithPointers = (fileContent: string) =>
-      tryCatch2v(() => parseWithPointers(fileContent), e => String(e));
+    const parseJsonWithPointers = (fileContent: string) => tryCatch2v(() => parseWithPointers(fileContent), e => String(e));
 
-    const runSpectralWith = (parsed: IParserResult<any>) =>
-      tryCatch2v(
-        () => ({ parsed, results: createSpectral().run(parsed.data, { resolvedTarget: parsed.data }).results }),
-        e => String(e)
-      );
+    const runSpectralWith = (parsed: IParserResult<any>) => tryCatch2v(
+      () => ({ parsed, results: createSpectral().run(parsed.data, { resolvedTarget: parsed.data }).results }),
+      e => String(e)
+    );
+
+    const createGithubCheck = (octokit: Octokit, event: { owner: string, repo: string }) => tryCatch(
+      () => octokit.checks.create({
+        owner: event.owner,
+        repo: event.repo,
+        name: "Spectral Lint Check",
+        head_sha: GITHUB_SHA
+      }),
+      e => String(e)
+    );
+
+    const updateGithuCheck = (octokit: Octokit, check: Octokit.Response<Octokit.ChecksCreateResponse>, event: { owner: string, repo: string }, annotations: Octokit.ChecksUpdateParamsOutputAnnotations[]) => tryCatch(
+      () => octokit.checks.update({
+        check_run_id: check.data.id,
+        owner: event.owner,
+        name: "Spectral Lint Check",
+        repo: event.repo,
+        status: "completed",
+        conclusion: "failure",
+        completed_at: new Date().toISOString(),
+        output: {
+          title: "Spectral Lint Check",
+          summary: "This was horrible",
+          annotations
+        }
+      }),
+      e => String(e)
+    );
 
     return getRepositoryInfoFromEvent
-      .chain(event => createOctokitInstance.map(octokit => ({ event, octokit })))
-      .chain(({ event, octokit }) => {
-        return tryCatch(
-          () =>
-            octokit.checks.create({
-              owner: event.owner,
-              repo: event.repo,
-              name: "Spectral Lint Check",
-              head_sha: GITHUB_SHA
-            }),
-          e => String(e)
-        ).chain(check =>
+      .chain(event => createOctokitInstance.map(octokit => ({ octokit, event })))
+      .chain(({ octokit, event }) => {
+        return createGithubCheck(octokit, event).chain(check =>
           fromIOEither(readFileToAnalyze
             .chain(parseJsonWithPointers)
             .chain(runSpectralWith))
@@ -133,28 +150,12 @@ createConfigFromEnv
                 };
               });
 
-              return tryCatch(
-                () =>
-                  octokit.checks.update({
-                    check_run_id: check.data.id,
-                    owner: event.owner,
-                    name: "Spectral Lint Check",
-                    repo: event.repo,
-                    status: "completed",
-                    conclusion: "failure",
-                    completed_at: new Date().toISOString(),
-                    output: {
-                      title: "Spectral Lint Check",
-                      summary: "This was horrible",
-                      annotations
-                    }
-                  }),
-                e => String(e)
-              );
-            }
-            )
+              return updateGithuCheck(octokit, check, event, annotations);
+            })
         );
       });
-  })
+  });
+
+program
   .run()
   .then(result => result.fold(error, () => log("Worked fine")));
