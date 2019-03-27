@@ -18,15 +18,15 @@
   },
   "homepage": "https://github.com/XVincentX/spectral-action#readme",
   "devDependencies": {
-    "typescript": "^3.3.3333"
+    "typescript": "^3.3.4000"
   },
   "dependencies": {
-    "@octokit/rest": "^16.17.0",
-    "@stoplight/json": "^1.5.0",
-    "@stoplight/spectral": "^1.1.1",
-    "@types/node": "^11.10.5",
-    "fp-ts": "^1.14.3",
-    "io-ts": "^1.8.2",
+    "@octokit/rest": "^16.21.0",
+    "@stoplight/json": "^1.8.0",
+    "@stoplight/spectral": "^1.2.0",
+    "@types/node": "^11.12.0",
+    "fp-ts": "^1.15.0",
+    "io-ts": "^1.8.4",
     "tslib": "^1.9.3"
   }
 }
