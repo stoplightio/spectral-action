@@ -31,12 +31,15 @@ type Event = {
   };
 };
 
-const createSpectral = () => {
+const createSpectral = (doc: 'oas2' | 'oas3') => {
   const spectral = new Spectral();
-  spectral.addFunctions(oas2Functions());
-  spectral.addRules(oas2Rules());
-  spectral.addFunctions(oas3Functions());
-  spectral.addRules(oas3Rules());
+  if (doc === 'oas2') {
+    spectral.addFunctions(oas2Functions());
+    spectral.addRules(oas2Rules());
+  } else {
+    spectral.addFunctions(oas3Functions());
+    spectral.addRules(oas3Rules());
+  }
 
   return spectral;
 };
@@ -70,8 +73,8 @@ const program = createConfigFromEnv
 
     const parseJSON = (fileContent: string) => tryCatch2v(() => JSON.parse(fileContent), e => e);
 
-    const runSpectralWith = (parsed: object) => tryCatch(
-      () => createSpectral().run(parsed),
+    const runSpectralWith = (parsed: { swagger?: string, openapi?: string }) => tryCatch(
+      () => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed),
       e => e
     );
 
