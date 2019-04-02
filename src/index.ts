@@ -9,7 +9,6 @@ import { IOEither, tryCatch2v } from "fp-ts/lib/IOEither";
 import { IO } from "fp-ts/lib/IO";
 import { fromIOEither, tryCatch } from "fp-ts/lib/TaskEither";
 import { Either } from "fp-ts/lib/Either";
-import { failure } from "io-ts/lib/PathReporter";
 import * as t from "io-ts";
 import { error, log } from "console";
 
@@ -47,10 +46,10 @@ const getConfig: IO<Either<t.Errors, Config>> = getEnv.map(env => Config.decode(
 const createConfigFromEnv = fromIOEither(new IOEither(getConfig));
 
 const program = createConfigFromEnv
-  .mapLeft(errors => failure(errors).join("\n"))
+  .mapLeft(errors => Object(errors))
   .chain(({ GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, SPECTRAL_FILE_PATH }) => {
     const getRepositoryInfoFromEvent = fromIOEither(
-      tryCatch2v<string, Event>(() => require(GITHUB_EVENT_PATH), e => String(e))
+      tryCatch2v<object, Event>(() => require(GITHUB_EVENT_PATH), e => Object(e))
     ).map(event => {
       const { repository } = event;
       const {
@@ -61,19 +60,19 @@ const program = createConfigFromEnv
     });
 
     const createOctokitInstance = fromIOEither(
-      tryCatch2v(() => new Octokit({ auth: `token ${GITHUB_TOKEN}` }), e => String(e))
+      tryCatch2v(() => new Octokit({ auth: `token ${GITHUB_TOKEN}` }), e => Object(e))
     );
 
     const readFileToAnalyze = tryCatch2v(
       () => readFileSync(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH), { encoding: "utf8" }),
-      e => String(e)
+      e => e
     );
 
-    const parseJSON = (fileContent: string) => tryCatch2v(() => JSON.parse(fileContent), e => String(e));
+    const parseJSON = (fileContent: string) => tryCatch2v(() => JSON.parse(fileContent), e => e);
 
     const runSpectralWith = (parsed: object) => tryCatch(
       () => createSpectral().run(parsed),
-      e => String(e)
+      e => e
     );
 
     const createGithubCheck = (octokit: Octokit, event: { owner: string, repo: string }) => tryCatch(
@@ -83,17 +82,17 @@ const program = createConfigFromEnv
         name: "Spectral Lint Check",
         head_sha: GITHUB_SHA
       }),
-      e => String(e)
+      e => Object(e)
     );
 
-    const updateGithuCheck = (octokit: Octokit, check: Octokit.Response<Octokit.ChecksCreateResponse>, event: { owner: string, repo: string }, annotations: Octokit.ChecksUpdateParamsOutputAnnotations[]) => tryCatch(
+    const updateGithubCheck = (octokit: Octokit, check: Octokit.Response<Octokit.ChecksCreateResponse>, event: { owner: string, repo: string }, annotations: Octokit.ChecksUpdateParamsOutputAnnotations[], conclusion: Octokit.ChecksUpdateParams['conclusion']) => tryCatch(
       () => octokit.checks.update({
         check_run_id: check.data.id,
         owner: event.owner,
         name: "Spectral Lint Check",
         repo: event.repo,
         status: "completed",
-        conclusion: "failure",
+        conclusion,
         completed_at: new Date().toISOString(),
         output: {
           title: "Spectral Lint Check",
@@ -101,7 +100,7 @@ const program = createConfigFromEnv
           annotations
         }
       }),
-      e => String(e)
+      e => Object(e)
     );
 
     return getRepositoryInfoFromEvent
@@ -122,19 +121,27 @@ const program = createConfigFromEnv
                       ? "warning"
                       : "notice";
 
+                const sameLine = validationResult.range.start.line === validationResult.range.end.line;
+
                 return {
                   annotation_level,
                   message: validationResult.message,
                   title: validationResult.summary,
-                  start_line: validationResult.range.start.line,
-                  end_line: validationResult.range.end.line,
-                  start_column: validationResult.range.start.character,
-                  end_column: validationResult.range.end.character,
-                  path: SPECTRAL_FILE_PATH
+                  start_line: 1 + validationResult.range.start.line,
+                  end_line: 1 + validationResult.range.end.line,
+                  start_column: sameLine ? validationResult.range.start.character : undefined,
+                  end_column: sameLine ? validationResult.range.end.character : undefined,
+                  path: SPECTRAL_FILE_PATH,
                 };
               });
 
-              return updateGithuCheck(octokit, check, event, annotations);
+              return updateGithubCheck(
+                octokit,
+                check,
+                event,
+                annotations,
+                annotations.findIndex(f => f.annotation_level === "failure") === -1 ? 'success' : 'failure'
+              );
             })
         );
       });
@@ -142,4 +149,4 @@ const program = createConfigFromEnv
 
 program
   .run()
-  .then(result => result.fold(error, () => log("Worked fine")));
+  .then((result: Either<string | object, unknown>) => result.fold(error, () => log("Worked fine")));
