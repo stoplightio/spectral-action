@@ -1,15 +1,11 @@
 import { join } from "path";
 import * as Octokit from "@octokit/rest";
 import { Spectral } from "@stoplight/spectral";
-import { pathToPointer } from "@stoplight/json";
-import { parseWithPointers } from "@stoplight/json/parseWithPointers";
 import { readFileSync } from "fs";
 import { oas2Functions, oas2Rules } from "@stoplight/spectral/rulesets/oas2";
 import { oas3Functions, oas3Rules } from "@stoplight/spectral/rulesets/oas3";
-import { ValidationSeverity } from "@stoplight/types/validations";
-import { IPathPosition, IParserResult } from "@stoplight/types/parsers";
+import { DiagnosticSeverity } from "@stoplight/types";
 import { IOEither, tryCatch2v } from "fp-ts/lib/IOEither";
-import { fromNullable } from "fp-ts/lib/Option";
 import { IO } from "fp-ts/lib/IO";
 import { fromIOEither, tryCatch } from "fp-ts/lib/TaskEither";
 import { Either } from "fp-ts/lib/Either";
@@ -46,9 +42,6 @@ const createSpectral = () => {
   return spectral;
 };
 
-function isDefined(t: IPathPosition): t is Required<IPathPosition> {
-  return !!t.end;
-}
 const getEnv: IO<NodeJS.ProcessEnv> = new IO(() => process.env);
 const getConfig: IO<Either<t.Errors, Config>> = getEnv.map(env => Config.decode(env));
 const createConfigFromEnv = fromIOEither(new IOEither(getConfig));
@@ -76,10 +69,10 @@ const program = createConfigFromEnv
       e => String(e)
     );
 
-    const parseJsonWithPointers = (fileContent: string) => tryCatch2v(() => parseWithPointers(fileContent), e => String(e));
+    const parseJSON = (fileContent: string) => tryCatch2v(() => JSON.parse(fileContent), e => String(e));
 
-    const runSpectralWith = (parsed: IParserResult<any>) => tryCatch2v(
-      () => ({ parsed, results: createSpectral().run(parsed.data, { resolvedTarget: parsed.data }).results }),
+    const runSpectralWith = (parsed: object) => tryCatch(
+      () => createSpectral().run(parsed),
       e => String(e)
     );
 
@@ -116,36 +109,27 @@ const program = createConfigFromEnv
       .chain(({ octokit, event }) => {
         return createGithubCheck(octokit, event).chain(check =>
           fromIOEither(readFileToAnalyze
-            .chain(parseJsonWithPointers)
-            .chain(runSpectralWith))
-            .chain(({ parsed, results }) => {
-              const defaultAnnotation: Required<IPathPosition> = {
-                start: { line: 0, column: undefined },
-                end: { line: 0, column: undefined }
-              };
+            .chain(parseJSON))
+            .chain(runSpectralWith)
+            .chain(results => {
 
               const annotations: Octokit.ChecksUpdateParamsOutputAnnotations[] = results.map(validationResult => {
-                const path = pathToPointer(validationResult.path as string[]).slice(1);
-                const position = fromNullable(parsed.pointers[path])
-                  .filter(isDefined)
-                  .map(pointer => ({ ...defaultAnnotation, ...pointer }))
-                  .getOrElse(defaultAnnotation);
 
                 const annotation_level: "notice" | "warning" | "failure" =
-                  validationResult.severity === ValidationSeverity.Error
+                  validationResult.severity === DiagnosticSeverity.Error
                     ? "failure"
-                    : validationResult.severity === ValidationSeverity.Warn
+                    : validationResult.severity === DiagnosticSeverity.Warning
                       ? "warning"
                       : "notice";
 
                 return {
                   annotation_level,
-                  message: validationResult.summary,
-                  title: validationResult.name,
-                  start_line: position.start.line,
-                  end_line: position.end.line,
-                  start_column: position.start.column,
-                  end_column: position.end.column,
+                  message: validationResult.message,
+                  title: validationResult.summary,
+                  start_line: validationResult.range.start.line,
+                  end_line: validationResult.range.end.line,
+                  start_column: validationResult.range.start.character,
+                  end_column: validationResult.range.end.character,
                   path: SPECTRAL_FILE_PATH
                 };
               });
