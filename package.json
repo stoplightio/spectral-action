@@ -1,6 +1,6 @@
 {
   "name": "spectral-action",
-  "version": "1.0.1",
+  "version": "0.1.0",
   "description": "Lint your JSON and OAS2/3 files",
   "main": "src/index.ts",
   "scripts": {
