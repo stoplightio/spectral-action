@@ -17,7 +17,8 @@ const Config = t.strict({
   GITHUB_TOKEN: t.string,
   GITHUB_SHA: t.string,
   GITHUB_WORKSPACE: t.string,
-  SPECTRAL_FILE_PATH: t.string
+  SPECTRAL_FILE_PATH: t.string,
+  GITHUB_ACTION: t.string
 });
 
 type Config = t.TypeOf<typeof Config>;
@@ -53,11 +54,11 @@ const createOctokitInstance = (token: string) => TaskEither.fromIOEither(
   tryCatch2v(() => new Octokit({ auth: `token ${token}` }), e => Object(e))
 );
 
-const createGithubCheck = (octokit: Octokit, event: { owner: string, repo: string }, head_sha: string) => TaskEither.tryCatch(
+const createGithubCheck = (octokit: Octokit, event: { owner: string, repo: string }, name: string, head_sha: string) => TaskEither.tryCatch(
   () => octokit.checks.create({
     owner: event.owner,
     repo: event.repo,
-    name: "Spectral Lint Check",
+    name,
     head_sha
   }),
   e => Object(e)
@@ -76,7 +77,7 @@ const createConfigFromEnv = TaskEither.fromIOEither(new IOEither(getConfig));
 
 const program = createConfigFromEnv
   .mapLeft(errors => Object(errors))
-  .chain(({ GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, SPECTRAL_FILE_PATH }) => {
+  .chain(({ GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, GITHUB_ACTION, SPECTRAL_FILE_PATH }) => {
     const getRepositoryInfoFromEvent = TaskEither.fromIOEither(
       tryCatch2v<object, Event>(() => require(GITHUB_EVENT_PATH), e => Object(e))
     ).map(event => {
@@ -109,7 +110,7 @@ const program = createConfigFromEnv
     return getRepositoryInfoFromEvent
       .chain(event => createOctokitInstance(GITHUB_TOKEN).map(octokit => ({ octokit, event })))
       .chain(({ octokit, event }) => {
-        return createGithubCheck(octokit, event, GITHUB_SHA).chain(check =>
+        return createGithubCheck(octokit, event, GITHUB_ACTION, GITHUB_SHA).chain(check =>
           TaskEither.fromIOEither(readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
             .chain(parseJSON))
             .chain(runSpectralWith)
