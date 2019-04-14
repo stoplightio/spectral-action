@@ -1,7 +1,7 @@
 import { join } from 'path';
 import * as Octokit from '@octokit/rest';
 import { Spectral } from '@stoplight/spectral';
-import { readFileSync } from 'fs';
+import { promises as fs } from 'fs';
 import { oas2Functions, oas2Rules } from '@stoplight/spectral/rulesets/oas2';
 import { oas3Functions, oas3Rules } from '@stoplight/spectral/rulesets/oas3';
 import { DiagnosticSeverity } from '@stoplight/types';
@@ -71,7 +71,7 @@ const createGithubCheck = (octokit: Octokit, event: { owner: string; repo: strin
     e => Object(e)
   );
 
-const readFileToAnalyze = (path: string) => TaskEither.fromIOEither(tryCatch2v(() => readFileSync(path, { encoding: 'utf8' }), e => e));
+const readFileToAnalyze = (path: string) => TaskEither.tryCatch(() => fs.readFile(path, { encoding: 'utf8' }), e => e);
 
 const getRepositoryInfoFromEvent = (eventPath: string) => TaskEither.fromIOEither(
   tryCatch2v<object, Event>(() => require(eventPath), e => Object(e))
