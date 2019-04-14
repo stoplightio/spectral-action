@@ -8,9 +8,16 @@ import { DiagnosticSeverity } from '@stoplight/types';
 import { IOEither, tryCatch2v } from 'fp-ts/lib/IOEither';
 import { IO } from 'fp-ts/lib/IO';
 import * as TaskEither from 'fp-ts/lib/TaskEither';
-import { Either } from 'fp-ts/lib/Either';
+import { Either, parseJSON } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
-import { error, log } from 'console';
+import { error, log } from 'fp-ts/lib/Console';
+
+const oasDocument = t.partial({
+  swagger: t.string,
+  openapi: t.string
+})
+
+type oasDocument = t.TypeOf<typeof oasDocument>;
 
 const Config = t.strict({
   GITHUB_EVENT_PATH: t.string,
@@ -20,6 +27,7 @@ const Config = t.strict({
   SPECTRAL_FILE_PATH: t.string,
   GITHUB_ACTION: t.string
 });
+
 
 type Config = t.TypeOf<typeof Config>;
 
@@ -45,7 +53,7 @@ const createSpectral = (doc: 'oas2' | 'oas3') => {
   return spectral;
 };
 
-const runSpectral = (parsed: { swagger?: string; openapi?: string }) =>
+const runSpectral = (parsed: oasDocument) =>
   TaskEither.tryCatch(() => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed), e => e);
 
 const createOctokitInstance = (token: string) =>
@@ -64,8 +72,6 @@ const createGithubCheck = (octokit: Octokit, event: { owner: string; repo: strin
   );
 
 const readFileToAnalyze = (path: string) => TaskEither.fromIOEither(tryCatch2v(() => readFileSync(path, { encoding: 'utf8' }), e => e));
-
-const parseJSON = (fileContent: string) => TaskEither.fromIOEither(tryCatch2v(() => JSON.parse(fileContent), e => e));
 
 const getRepositoryInfoFromEvent = (eventPath: string) => TaskEither.fromIOEither(
   tryCatch2v<object, Event>(() => require(eventPath), e => Object(e))
@@ -122,8 +128,9 @@ const program = createConfigFromEnv
       .chain(({ octokit, event }) =>
         createGithubCheck(octokit, event, GITHUB_ACTION, GITHUB_SHA).chain(check =>
           readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
-            .chain(parseJSON)
-            .chain(runSpectral)
+            .chain(content => TaskEither.fromEither(parseJSON(content, e => e)))
+            .chain(content => TaskEither.fromEither(oasDocument.decode(content)))
+            .chain(parsed => runSpectral(parsed))
             .map(results => {
               return results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
                 const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations['annotation_level'] =
