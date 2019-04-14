@@ -99,7 +99,7 @@ const program = createConfigFromEnv
         completed_at: new Date().toISOString(),
         output: {
           title: "Spectral Lint Check",
-          summary: "This was horrible",
+          summary: conclusion === 'success' ? 'Lint completed successfully' : 'Lint completed with some errors',
           annotations
         }
       }),
