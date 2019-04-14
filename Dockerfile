@@ -1,4 +1,4 @@
-FROM node:10 as builder
+FROM node:11 as builder
 
 LABEL com.github.actions.name="Spectral checks"
 LABEL com.github.actions.description="Lint your JSON and OAS2/3 files"
@@ -18,13 +18,13 @@ COPY tsconfig.json tsconfig.json
 
 RUN ./node_modules/.bin/tsc
 
-FROM node:10 as installer
+FROM node:11 as installer
 
 ENV NODE_ENV production
 COPY package.json package.json
 RUN npm install --production
 
-FROM node:10 as runtime
+FROM node:11 as runtime
 ENV NODE_ENV production
 COPY package.json /action/package.json
 COPY --from=builder dist /action/dist
