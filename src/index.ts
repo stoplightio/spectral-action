@@ -1,16 +1,16 @@
-import { join } from "path";
-import * as Octokit from "@octokit/rest";
-import { Spectral } from "@stoplight/spectral";
-import { readFileSync } from "fs";
-import { oas2Functions, oas2Rules } from "@stoplight/spectral/rulesets/oas2";
-import { oas3Functions, oas3Rules } from "@stoplight/spectral/rulesets/oas3";
-import { DiagnosticSeverity } from "@stoplight/types";
-import { IOEither, tryCatch2v } from "fp-ts/lib/IOEither";
-import { IO } from "fp-ts/lib/IO";
-import * as TaskEither from "fp-ts/lib/TaskEither";
-import { Either } from "fp-ts/lib/Either";
-import * as t from "io-ts";
-import { error, log } from "console";
+import { join } from 'path';
+import * as Octokit from '@octokit/rest';
+import { Spectral } from '@stoplight/spectral';
+import { readFileSync } from 'fs';
+import { oas2Functions, oas2Rules } from '@stoplight/spectral/rulesets/oas2';
+import { oas3Functions, oas3Rules } from '@stoplight/spectral/rulesets/oas3';
+import { DiagnosticSeverity } from '@stoplight/types';
+import { IOEither, tryCatch2v } from 'fp-ts/lib/IOEither';
+import { IO } from 'fp-ts/lib/IO';
+import * as TaskEither from 'fp-ts/lib/TaskEither';
+import { Either } from 'fp-ts/lib/Either';
+import * as t from 'io-ts';
+import { error, log } from 'console';
 
 const Config = t.strict({
   GITHUB_EVENT_PATH: t.string,
@@ -45,29 +45,25 @@ const createSpectral = (doc: 'oas2' | 'oas3') => {
   return spectral;
 };
 
-const runSpectral = (parsed: { swagger?: string, openapi?: string }) => TaskEither.tryCatch(
-  () => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed),
-  e => e
-);
+const runSpectral = (parsed: { swagger?: string; openapi?: string }) =>
+  TaskEither.tryCatch(() => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed), e => e);
 
-const createOctokitInstance = (token: string) => TaskEither.fromIOEither(
-  tryCatch2v(() => new Octokit({ auth: `token ${token}` }), e => Object(e))
-);
+const createOctokitInstance = (token: string) =>
+  TaskEither.fromIOEither(tryCatch2v(() => new Octokit({ auth: `token ${token}` }), e => Object(e)));
 
-const createGithubCheck = (octokit: Octokit, event: { owner: string, repo: string }, name: string, head_sha: string) => TaskEither.tryCatch(
-  () => octokit.checks.create({
-    owner: event.owner,
-    repo: event.repo,
-    name,
-    head_sha
-  }),
-  e => Object(e)
-);
+const createGithubCheck = (octokit: Octokit, event: { owner: string; repo: string }, name: string, head_sha: string) =>
+  TaskEither.tryCatch(
+    () =>
+      octokit.checks.create({
+        owner: event.owner,
+        repo: event.repo,
+        name,
+        head_sha
+      }),
+    e => Object(e)
+  );
 
-const readFileToAnalyze = (path: string) => tryCatch2v(
-  () => readFileSync(path, { encoding: "utf8" }),
-  e => e
-);
+const readFileToAnalyze = (path: string) => tryCatch2v(() => readFileSync(path, { encoding: 'utf8' }), e => e);
 
 const parseJSON = (fileContent: string) => tryCatch2v(() => JSON.parse(fileContent), e => e);
 
@@ -92,44 +88,48 @@ const program = createConfigFromEnv
     const updateGithubCheck = (
       octokit: Octokit,
       check: Octokit.Response<Octokit.ChecksCreateResponse>,
-      event: { owner: string, repo: string },
+      event: { owner: string; repo: string },
       annotations: Octokit.ChecksUpdateParamsOutputAnnotations[],
       conclusion: Octokit.ChecksUpdateParams['conclusion'],
       message?: string
-    ) => TaskEither.tryCatch(
-      () => octokit.checks.update({
-        check_run_id: check.data.id,
-        owner: event.owner,
-        name: "Spectral Lint Check",
-        repo: event.repo,
-        status: "completed",
-        conclusion,
-        completed_at: new Date().toISOString(),
-        output: {
-          title: "Spectral Lint Check",
-          summary: message ? message : conclusion === 'success' ? 'Lint completed successfully' : 'Lint completed with some errors',
-          annotations
-        }
-      }),
-      e => Object(e)
-    );
+    ) =>
+      TaskEither.tryCatch(
+        () =>
+          octokit.checks.update({
+            check_run_id: check.data.id,
+            owner: event.owner,
+            name: 'Spectral Lint Check',
+            repo: event.repo,
+            status: 'completed',
+            conclusion,
+            completed_at: new Date().toISOString(),
+            output: {
+              title: 'Spectral Lint Check',
+              summary: message
+                ? message
+                : conclusion === 'success'
+                  ? 'Lint completed successfully'
+                  : 'Lint completed with some errors',
+              annotations
+            }
+          }),
+        e => Object(e)
+      );
 
     return getRepositoryInfoFromEvent
       .chain(event => createOctokitInstance(GITHUB_TOKEN).map(octokit => ({ octokit, event })))
       .chain(({ octokit, event }) => {
         return createGithubCheck(octokit, event, GITHUB_ACTION, GITHUB_SHA).chain(check =>
-          TaskEither.fromIOEither(readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
-            .chain(parseJSON))
+          TaskEither.fromIOEither(readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH)).chain(parseJSON))
             .chain(runSpectral)
             .map(results => {
               return results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
-
                 const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations['annotation_level'] =
                   validationResult.severity === DiagnosticSeverity.Error
-                    ? "failure"
+                    ? 'failure'
                     : validationResult.severity === DiagnosticSeverity.Warning
-                      ? "warning"
-                      : "notice";
+                      ? 'warning'
+                      : 'notice';
 
                 const sameLine = validationResult.range.start.line === validationResult.range.end.line;
 
@@ -141,30 +141,24 @@ const program = createConfigFromEnv
                   end_line: 1 + validationResult.range.end.line,
                   start_column: sameLine ? validationResult.range.start.character : undefined,
                   end_column: sameLine ? validationResult.range.end.character : undefined,
-                  path: SPECTRAL_FILE_PATH,
+                  path: SPECTRAL_FILE_PATH
                 };
               });
             })
-            .chain(annotations => updateGithubCheck(
-              octokit,
-              check,
-              event,
-              annotations,
-              annotations.findIndex(f => f.annotation_level === "failure") === -1 ? 'success' : 'failure'
-            )).mapLeft(e => {
-              return updateGithubCheck(
+            .chain(annotations =>
+              updateGithubCheck(
                 octokit,
                 check,
                 event,
-                [],
-                'failure',
-                String(e)
+                annotations,
+                annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
               )
+            )
+            .mapLeft(e => {
+              return updateGithubCheck(octokit, check, event, [], 'failure', String(e));
             })
         );
       });
   });
 
-program
-  .run()
-  .then((result: Either<string | object, unknown>) => result.fold(error, () => log("Worked fine")));
+program.run().then((result: Either<string | object, unknown>) => result.fold(error, () => log('Worked fine')));
