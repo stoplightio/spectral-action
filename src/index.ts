@@ -68,7 +68,6 @@ const readFileToAnalyze = (path: string) => tryCatch2v(
   e => e
 );
 
-
 const parseJSON = (fileContent: string) => tryCatch2v(() => JSON.parse(fileContent), e => e);
 
 const getEnv: IO<NodeJS.ProcessEnv> = new IO(() => process.env);
@@ -114,9 +113,8 @@ const program = createConfigFromEnv
           TaskEither.fromIOEither(readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
             .chain(parseJSON))
             .chain(runSpectralWith)
-            .chain(results => {
-
-              const annotations: Octokit.ChecksUpdateParamsOutputAnnotations[] = results.map(validationResult => {
+            .map(results => {
+              return results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
 
                 const annotation_level: "notice" | "warning" | "failure" =
                   validationResult.severity === DiagnosticSeverity.Error
@@ -138,15 +136,14 @@ const program = createConfigFromEnv
                   path: SPECTRAL_FILE_PATH,
                 };
               });
-
-              return updateGithubCheck(
-                octokit,
-                check,
-                event,
-                annotations,
-                annotations.findIndex(f => f.annotation_level === "failure") === -1 ? 'success' : 'failure'
-              );
             })
+            .chain(annotations => updateGithubCheck(
+              octokit,
+              check,
+              event,
+              annotations,
+              annotations.findIndex(f => f.annotation_level === "failure") === -1 ? 'success' : 'failure'
+            ))
         );
       });
   });
