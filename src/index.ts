@@ -89,7 +89,14 @@ const program = createConfigFromEnv
       return { owner, repo };
     });
 
-    const updateGithubCheck = (octokit: Octokit, check: Octokit.Response<Octokit.ChecksCreateResponse>, event: { owner: string, repo: string }, annotations: Octokit.ChecksUpdateParamsOutputAnnotations[], conclusion: Octokit.ChecksUpdateParams['conclusion']) => TaskEither.tryCatch(
+    const updateGithubCheck = (
+      octokit: Octokit,
+      check: Octokit.Response<Octokit.ChecksCreateResponse>,
+      event: { owner: string, repo: string },
+      annotations: Octokit.ChecksUpdateParamsOutputAnnotations[],
+      conclusion: Octokit.ChecksUpdateParams['conclusion'],
+      message?: string
+    ) => TaskEither.tryCatch(
       () => octokit.checks.update({
         check_run_id: check.data.id,
         owner: event.owner,
@@ -100,7 +107,7 @@ const program = createConfigFromEnv
         completed_at: new Date().toISOString(),
         output: {
           title: "Spectral Lint Check",
-          summary: conclusion === 'success' ? 'Lint completed successfully' : 'Lint completed with some errors',
+          summary: message ? message : conclusion === 'success' ? 'Lint completed successfully' : 'Lint completed with some errors',
           annotations
         }
       }),
@@ -117,7 +124,7 @@ const program = createConfigFromEnv
             .map(results => {
               return results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
 
-                const annotation_level: "notice" | "warning" | "failure" =
+                const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations['annotation_level'] =
                   validationResult.severity === DiagnosticSeverity.Error
                     ? "failure"
                     : validationResult.severity === DiagnosticSeverity.Warning
@@ -144,7 +151,16 @@ const program = createConfigFromEnv
               event,
               annotations,
               annotations.findIndex(f => f.annotation_level === "failure") === -1 ? 'success' : 'failure'
-            ))
+            )).mapLeft(e => {
+              return updateGithubCheck(
+                octokit,
+                check,
+                event,
+                [],
+                'failure',
+                String(e)
+              )
+            })
         );
       });
   });
