@@ -7,7 +7,7 @@ import { oas3Functions, oas3Rules } from "@stoplight/spectral/rulesets/oas3";
 import { DiagnosticSeverity } from "@stoplight/types";
 import { IOEither, tryCatch2v } from "fp-ts/lib/IOEither";
 import { IO } from "fp-ts/lib/IO";
-import { fromIOEither, tryCatch } from "fp-ts/lib/TaskEither";
+import * as TaskEither from "fp-ts/lib/TaskEither";
 import { Either } from "fp-ts/lib/Either";
 import * as t from "io-ts";
 import { error, log } from "console";
@@ -44,14 +44,41 @@ const createSpectral = (doc: 'oas2' | 'oas3') => {
   return spectral;
 };
 
+const runSpectralWith = (parsed: { swagger?: string, openapi?: string }) => TaskEither.tryCatch(
+  () => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed),
+  e => e
+);
+
+const createOctokitInstance = (token: string) => TaskEither.fromIOEither(
+  tryCatch2v(() => new Octokit({ auth: `token ${token}` }), e => Object(e))
+);
+
+const createGithubCheck = (octokit: Octokit, event: { owner: string, repo: string }, head_sha: string) => TaskEither.tryCatch(
+  () => octokit.checks.create({
+    owner: event.owner,
+    repo: event.repo,
+    name: "Spectral Lint Check",
+    head_sha
+  }),
+  e => Object(e)
+);
+
+const readFileToAnalyze = (path: string) => tryCatch2v(
+  () => readFileSync(path, { encoding: "utf8" }),
+  e => e
+);
+
+
+const parseJSON = (fileContent: string) => tryCatch2v(() => JSON.parse(fileContent), e => e);
+
 const getEnv: IO<NodeJS.ProcessEnv> = new IO(() => process.env);
 const getConfig: IO<Either<t.Errors, Config>> = getEnv.map(env => Config.decode(env));
-const createConfigFromEnv = fromIOEither(new IOEither(getConfig));
+const createConfigFromEnv = TaskEither.fromIOEither(new IOEither(getConfig));
 
 const program = createConfigFromEnv
   .mapLeft(errors => Object(errors))
   .chain(({ GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, SPECTRAL_FILE_PATH }) => {
-    const getRepositoryInfoFromEvent = fromIOEither(
+    const getRepositoryInfoFromEvent = TaskEither.fromIOEither(
       tryCatch2v<object, Event>(() => require(GITHUB_EVENT_PATH), e => Object(e))
     ).map(event => {
       const { repository } = event;
@@ -62,33 +89,7 @@ const program = createConfigFromEnv
       return { owner, repo };
     });
 
-    const createOctokitInstance = fromIOEither(
-      tryCatch2v(() => new Octokit({ auth: `token ${GITHUB_TOKEN}` }), e => Object(e))
-    );
-
-    const readFileToAnalyze = tryCatch2v(
-      () => readFileSync(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH), { encoding: "utf8" }),
-      e => e
-    );
-
-    const parseJSON = (fileContent: string) => tryCatch2v(() => JSON.parse(fileContent), e => e);
-
-    const runSpectralWith = (parsed: { swagger?: string, openapi?: string }) => tryCatch(
-      () => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed),
-      e => e
-    );
-
-    const createGithubCheck = (octokit: Octokit, event: { owner: string, repo: string }) => tryCatch(
-      () => octokit.checks.create({
-        owner: event.owner,
-        repo: event.repo,
-        name: "Spectral Lint Check",
-        head_sha: GITHUB_SHA
-      }),
-      e => Object(e)
-    );
-
-    const updateGithubCheck = (octokit: Octokit, check: Octokit.Response<Octokit.ChecksCreateResponse>, event: { owner: string, repo: string }, annotations: Octokit.ChecksUpdateParamsOutputAnnotations[], conclusion: Octokit.ChecksUpdateParams['conclusion']) => tryCatch(
+    const updateGithubCheck = (octokit: Octokit, check: Octokit.Response<Octokit.ChecksCreateResponse>, event: { owner: string, repo: string }, annotations: Octokit.ChecksUpdateParamsOutputAnnotations[], conclusion: Octokit.ChecksUpdateParams['conclusion']) => TaskEither.tryCatch(
       () => octokit.checks.update({
         check_run_id: check.data.id,
         owner: event.owner,
@@ -107,10 +108,10 @@ const program = createConfigFromEnv
     );
 
     return getRepositoryInfoFromEvent
-      .chain(event => createOctokitInstance.map(octokit => ({ octokit, event })))
+      .chain(event => createOctokitInstance(GITHUB_TOKEN).map(octokit => ({ octokit, event })))
       .chain(({ octokit, event }) => {
-        return createGithubCheck(octokit, event).chain(check =>
-          fromIOEither(readFileToAnalyze
+        return createGithubCheck(octokit, event, GITHUB_SHA).chain(check =>
+          TaskEither.fromIOEither(readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
             .chain(parseJSON))
             .chain(runSpectralWith)
             .chain(results => {
