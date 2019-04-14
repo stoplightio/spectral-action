@@ -45,7 +45,7 @@ const createSpectral = (doc: 'oas2' | 'oas3') => {
   return spectral;
 };
 
-const runSpectralWith = (parsed: { swagger?: string, openapi?: string }) => TaskEither.tryCatch(
+const runSpectral = (parsed: { swagger?: string, openapi?: string }) => TaskEither.tryCatch(
   () => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed),
   e => e
 );
@@ -113,7 +113,7 @@ const program = createConfigFromEnv
         return createGithubCheck(octokit, event, GITHUB_ACTION, GITHUB_SHA).chain(check =>
           TaskEither.fromIOEither(readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
             .chain(parseJSON))
-            .chain(runSpectralWith)
+            .chain(runSpectral)
             .map(results => {
               return results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
 
