@@ -54,8 +54,30 @@ const createSpectral = (doc: 'oas2' | 'oas3') => {
   return spectral;
 };
 
-const runSpectral = (parsed: oasDocument) =>
-  TaskEither.tryCatch(() => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed), e => toError(e).message);
+const createSpectralAnnotations = (path: string, parsed: oasDocument) =>
+  TaskEither.tryCatch(() => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed), e => toError(e).message).map(results => {
+    return results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
+      const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations['annotation_level'] =
+        validationResult.severity === DiagnosticSeverity.Error
+          ? 'failure'
+          : validationResult.severity === DiagnosticSeverity.Warning
+            ? 'warning'
+            : 'notice';
+
+      const sameLine = validationResult.range.start.line === validationResult.range.end.line;
+
+      return {
+        annotation_level,
+        message: validationResult.message,
+        title: validationResult.summary,
+        start_line: 1 + validationResult.range.start.line,
+        end_line: 1 + validationResult.range.end.line,
+        start_column: sameLine ? validationResult.range.start.character : undefined,
+        end_column: sameLine ? validationResult.range.end.character : undefined,
+        path
+      };
+    });
+  });
 
 const createOctokitInstance = (token: string) =>
   TaskEither.fromIOEither(tryCatch2v(() => new Octokit({ auth: `token ${token}` }), e => toError(e).message));
@@ -72,7 +94,12 @@ const createGithubCheck = (octokit: Octokit, event: { owner: string; repo: strin
     e => toError(e).message
   );
 
-const readFileToAnalyze = (path: string) => TaskEither.tryCatch(() => fs.readFile(path, { encoding: 'utf8' }), e => toError(e).message);
+const readFileToAnalyze = (path: string) =>
+  TaskEither.tryCatch(() => fs.readFile(path, { encoding: 'utf8' }), e => toError(e).message)
+    .chain(content => TaskEither.fromEither(
+      parseJSON(content, e => toError(e).message)
+        .chain(content => oasDocument.decode(content).mapLeft(e => failure(e).join('\n')))
+    ));
 
 const getRepositoryInfoFromEvent = (eventPath: string) => TaskEither.fromIOEither(
   tryCatch2v<string, Event>(() => require(eventPath), e => toError(e).message)
@@ -130,32 +157,7 @@ const program = createConfigFromEnv
         createGithubCheck(octokit, event, GITHUB_ACTION, GITHUB_SHA)
           .chain(check =>
             readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
-              .chain(content => TaskEither.fromEither(parseJSON(content, e => toError(e).message)))
-              .chain(content => TaskEither.fromEither(oasDocument.decode(content).mapLeft(e => failure(e).join('\n'))))
-              .chain(runSpectral)
-              .map(results => {
-                return results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
-                  const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations['annotation_level'] =
-                    validationResult.severity === DiagnosticSeverity.Error
-                      ? 'failure'
-                      : validationResult.severity === DiagnosticSeverity.Warning
-                        ? 'warning'
-                        : 'notice';
-
-                  const sameLine = validationResult.range.start.line === validationResult.range.end.line;
-
-                  return {
-                    annotation_level,
-                    message: validationResult.message,
-                    title: validationResult.summary,
-                    start_line: 1 + validationResult.range.start.line,
-                    end_line: 1 + validationResult.range.end.line,
-                    start_column: sameLine ? validationResult.range.start.character : undefined,
-                    end_column: sameLine ? validationResult.range.end.character : undefined,
-                    path: SPECTRAL_FILE_PATH
-                  };
-                });
-              })
+              .chain(content => createSpectralAnnotations(SPECTRAL_FILE_PATH, content))
               .chain(annotations =>
                 updateGithubCheck(
                   octokit,
