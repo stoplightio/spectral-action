@@ -55,8 +55,8 @@ const createSpectral = (doc: 'oas2' | 'oas3') => {
 };
 
 const createSpectralAnnotations = (path: string, parsed: oasDocument) =>
-  TaskEither.tryCatch(() => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed), e => toError(e).message).map(results => {
-    return results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
+  TaskEither.tryCatch(() => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed), e => toError(e).message).map(results =>
+    results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
       const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations['annotation_level'] =
         validationResult.severity === DiagnosticSeverity.Error
           ? 'failure'
@@ -76,8 +76,8 @@ const createSpectralAnnotations = (path: string, parsed: oasDocument) =>
         end_column: sameLine ? validationResult.range.end.character : undefined,
         path
       };
-    });
-  });
+    })
+  );
 
 const createOctokitInstance = (token: string) =>
   TaskEither.fromIOEither(tryCatch2v(() => new Octokit({ auth: `token ${token}` }), e => toError(e).message));
@@ -150,26 +150,25 @@ const getConfig: IO<Either<t.Errors, Config>> = getEnv.map(env => Config.decode(
 const createConfigFromEnv = TaskEither.fromIOEither(new IOEither(getConfig)).mapLeft(errors => failure(errors).join('\n'));
 
 const program = createConfigFromEnv
-  .chain(({ GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, GITHUB_ACTION, SPECTRAL_FILE_PATH }) => {
-    return getRepositoryInfoFromEvent(GITHUB_EVENT_PATH)
+  .chain(({ GITHUB_EVENT_PATH, GITHUB_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, GITHUB_ACTION, SPECTRAL_FILE_PATH }) =>
+    getRepositoryInfoFromEvent(GITHUB_EVENT_PATH)
       .chain(event => createOctokitInstance(GITHUB_TOKEN).map(octokit => ({ octokit, event })))
-      .chain(({ octokit, event }) =>
-        createGithubCheck(octokit, event, GITHUB_ACTION, GITHUB_SHA)
-          .chain(check =>
-            readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
-              .chain(content => createSpectralAnnotations(SPECTRAL_FILE_PATH, content))
-              .chain(annotations =>
-                updateGithubCheck(
-                  octokit,
-                  GITHUB_ACTION,
-                  check,
-                  event,
-                  annotations,
-                  annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
-                )
-              ).orElse(e => updateGithubCheck(octokit, GITHUB_ACTION, check, event, [], 'failure', toError(e).message))
-          )
+      .chain(({ octokit, event }) => createGithubCheck(octokit, event, GITHUB_ACTION, GITHUB_SHA)
+        .map(check => ({ octokit, event, check })))
+      .chain(({ octokit, event, check }) =>
+        readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
+          .chain(content => createSpectralAnnotations(SPECTRAL_FILE_PATH, content))
+          .chain(annotations =>
+            updateGithubCheck(
+              octokit,
+              GITHUB_ACTION,
+              check,
+              event,
+              annotations,
+              annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
+            )
+          ).orElse(e => updateGithubCheck(octokit, GITHUB_ACTION, check, event, [], 'failure', toError(e).message))
       )
-  });
+  );
 
 program.run().then((result: Either<string, unknown>) => result.fold(error, () => log('Worked fine')));
