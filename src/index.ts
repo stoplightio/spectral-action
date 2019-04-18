@@ -89,7 +89,13 @@ const createGithubCheck = (octokit: Octokit, event: { owner: string; repo: strin
         owner: event.owner,
         repo: event.repo,
         name,
-        head_sha
+        head_sha,
+        output: {
+          title: 'Spectral File Lint',
+          summary: 'Test summary',
+          text: '# Nasino'
+
+        }
       }),
     e => toError(e).message
   );
