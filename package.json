@@ -24,7 +24,7 @@
     "@octokit/rest": "^16.25.0",
     "@stoplight/json": "^1.9.0",
     "@stoplight/spectral": "^2.0.6",
-    "@types/node": "^11.13.5",
+    "@types/node": "^11.13.6",
     "fp-ts": "^1.17.0",
     "io-ts": "^1.8.5",
     "tslib": "^1.9.3"
