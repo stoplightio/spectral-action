@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/XVincentX/spectral-action#readme",
   "devDependencies": {
-    "typescript": "^3.4.4"
+    "typescript": "^3.4.5"
   },
   "dependencies": {
     "@octokit/rest": "^16.25.0",
