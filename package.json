@@ -21,7 +21,7 @@
     "typescript": "^3.4.5"
   },
   "dependencies": {
-    "@octokit/rest": "^16.25.0",
+    "@octokit/rest": "^16.25.1",
     "@stoplight/json": "^1.9.0",
     "@stoplight/spectral": "^2.1.0",
     "@types/node": "^11.13.8",
