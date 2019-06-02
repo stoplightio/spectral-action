@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/XVincentX/spectral-action#readme",
   "devDependencies": {
+    "@types/urijs": "^1.19.1",
     "typescript": "^3.5.1"
   },
   "dependencies": {
