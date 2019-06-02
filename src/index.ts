@@ -2,8 +2,8 @@ import { join } from 'path';
 import * as Octokit from '@octokit/rest';
 import { Spectral } from '@stoplight/spectral';
 import { promises as fs } from 'fs';
-import { oas2Functions, oas2Rules } from '@stoplight/spectral/rulesets/oas2';
-import { oas3Functions, oas3Rules } from '@stoplight/spectral/rulesets/oas3';
+import { oas2Functions, rules as oas2Rules } from '@stoplight/spectral/rulesets/oas2';
+import { oas3Functions, rules as oas3Rules } from '@stoplight/spectral/rulesets/oas3';
 import { DiagnosticSeverity } from '@stoplight/types';
 import { IOEither, tryCatch2v } from 'fp-ts/lib/IOEither';
 import { IO } from 'fp-ts/lib/IO';
@@ -41,43 +41,46 @@ type Event = {
   };
 };
 
-const createSpectral = (doc: 'oas2' | 'oas3') => {
+const createSpectral = async (doc: 'oas2' | 'oas3') => {
   const spectral = new Spectral();
   if (doc === 'oas2') {
     spectral.addFunctions(oas2Functions());
-    spectral.addRules(oas2Rules());
+    spectral.addRules(await oas2Rules());
   } else {
     spectral.addFunctions(oas3Functions());
-    spectral.addRules(oas3Rules());
+    spectral.addRules(await oas3Rules());
   }
 
   return spectral;
 };
 
 const createSpectralAnnotations = (path: string, parsed: oasDocument) =>
-  TaskEither.tryCatch(() => createSpectral(parsed.swagger ? 'oas2' : 'oas3').run(parsed), e => toError(e).message).map(results =>
-    results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
-      const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations['annotation_level'] =
-        validationResult.severity === DiagnosticSeverity.Error
-          ? 'failure'
-          : validationResult.severity === DiagnosticSeverity.Warning
-            ? 'warning'
-            : 'notice';
+  TaskEither
+    .tryCatch(() => createSpectral(parsed.swagger ? 'oas2' : 'oas3'), e => toError(e).message)
+    .chain(spectral => TaskEither.tryCatch(() => spectral.run(parsed), e => toError(e).message))
+    .map(results =>
+      results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
+        const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations['annotation_level'] =
+          validationResult.severity === DiagnosticSeverity.Error
+            ? 'failure'
+            : validationResult.severity === DiagnosticSeverity.Warning
+              ? 'warning'
+              : 'notice';
 
-      const sameLine = validationResult.range.start.line === validationResult.range.end.line;
+        const sameLine = validationResult.range.start.line === validationResult.range.end.line;
 
-      return {
-        annotation_level,
-        message: validationResult.message,
-        title: validationResult.summary,
-        start_line: 1 + validationResult.range.start.line,
-        end_line: 1 + validationResult.range.end.line,
-        start_column: sameLine ? validationResult.range.start.character : undefined,
-        end_column: sameLine ? validationResult.range.end.character : undefined,
-        path
-      };
-    })
-  );
+        return {
+          annotation_level,
+          message: validationResult.message,
+          title: validationResult.summary,
+          start_line: 1 + validationResult.range.start.line,
+          end_line: 1 + validationResult.range.end.line,
+          start_column: sameLine ? validationResult.range.start.character : undefined,
+          end_column: sameLine ? validationResult.range.end.character : undefined,
+          path
+        };
+      })
+    );
 
 const createOctokitInstance = (token: string) =>
   TaskEither.fromIOEither(tryCatch2v(() => new Octokit({ auth: `token ${token}` }), e => toError(e).message));
