@@ -2,8 +2,8 @@ import { join } from 'path';
 import * as Octokit from '@octokit/rest';
 import { Spectral } from '@stoplight/spectral';
 import { promises as fs } from 'fs';
-import { oas2Functions, rules as oas2Rules } from '@stoplight/spectral/rulesets/oas2';
-import { oas3Functions, rules as oas3Rules } from '@stoplight/spectral/rulesets/oas3';
+import { oas2Functions, rules as oas2Rules } from '@stoplight/spectral/dist/rulesets/oas2';
+import { oas3Functions, rules as oas3Rules } from '@stoplight/spectral/dist/rulesets/oas3';
 import { DiagnosticSeverity } from '@stoplight/types';
 import { IOEither, tryCatch2v } from 'fp-ts/lib/IOEither';
 import { IO } from 'fp-ts/lib/IO';
@@ -72,7 +72,7 @@ const createSpectralAnnotations = (path: string, parsed: oasDocument) =>
         return {
           annotation_level,
           message: validationResult.message,
-          title: validationResult.summary,
+          title: validationResult.code as string,
           start_line: 1 + validationResult.range.start.line,
           end_line: 1 + validationResult.range.end.line,
           start_column: sameLine ? validationResult.range.start.character : undefined,
