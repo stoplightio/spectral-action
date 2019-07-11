@@ -18,6 +18,7 @@ import { Either, parseJSON, toError } from "fp-ts/lib/Either";
 import * as t from "io-ts";
 import { error, log } from "fp-ts/lib/Console";
 import { failure } from "io-ts/lib/PathReporter";
+import { pipe } from "fp-ts/lib/pipeable";
 
 const oasDocument = t.partial({
   swagger: t.string,
@@ -60,14 +61,15 @@ const createSpectral = async (doc: "oas2" | "oas3") => {
 };
 
 const createSpectralAnnotations = (path: string, parsed: oasDocument) =>
-  TaskEither.tryCatch(
-    () => createSpectral(parsed.swagger ? "oas2" : "oas3"),
-    e => toError(e).message
-  )
-    .chain(spectral =>
+  pipe(
+    TaskEither.tryCatch(
+      () => createSpectral(parsed.swagger ? "oas2" : "oas3"),
+      e => toError(e).message
+    ),
+    TaskEither.chain(spectral =>
       TaskEither.tryCatch(() => spectral.run(parsed), e => toError(e).message)
-    )
-    .map(results =>
+    ),
+    TaskEither.map(results =>
       results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(
         validationResult => {
           const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations["annotation_level"] =
@@ -97,7 +99,8 @@ const createSpectralAnnotations = (path: string, parsed: oasDocument) =>
           };
         }
       )
-    );
+    )
+  );
 
 const createOctokitInstance = (token: string) =>
   TaskEither.fromIOEither(
@@ -125,28 +128,37 @@ const createGithubCheck = (
   );
 
 const readFileToAnalyze = (path: string) =>
-  TaskEither.tryCatch(
-    () => fs.readFile(path, { encoding: "utf8" }),
-    e => toError(e).message
-  ).chain(content =>
-    TaskEither.fromEither(
-      parseJSON(content, e => toError(e).message).chain(content =>
-        oasDocument.decode(content).mapLeft(e => failure(e).join("\n"))
+  pipe(
+    TaskEither.tryCatch(
+      () => fs.readFile(path, { encoding: "utf8" }),
+      e => toError(e).message
+    ),
+    TaskEither.chain(content =>
+      TaskEither.fromEither(
+        parseJSON(content, e => toError(e).message).chain(content =>
+          oasDocument.decode(content).mapLeft(e => failure(e).join("\n"))
+        )
       )
     )
   );
 
 const getRepositoryInfoFromEvent = (eventPath: string) =>
-  TaskEither.fromIOEither(
-    tryCatch2v<string, Event>(() => require(eventPath), e => toError(e).message)
-  ).map(event => {
-    const { repository } = event;
-    const {
-      owner: { login: owner }
-    } = repository;
-    const { name: repo } = repository;
-    return { owner, repo };
-  });
+  pipe(
+    TaskEither.fromIOEither(
+      tryCatch2v<string, Event>(
+        () => require(eventPath),
+        e => toError(e).message
+      )
+    ),
+    TaskEither.map(event => {
+      const { repository } = event;
+      const {
+        owner: { login: owner }
+      } = repository;
+      const { name: repo } = repository;
+      return { owner, repo };
+    })
+  );
 
 const updateGithubCheck = (
   octokit: Octokit,
@@ -184,9 +196,11 @@ const getEnv: IO<NodeJS.ProcessEnv> = new IO(() => process.env);
 const getConfig: IO<Either<t.Errors, Config>> = getEnv.map(env =>
   Config.decode(env)
 );
-const createConfigFromEnv = TaskEither.fromIOEither(
-  new IOEither(getConfig)
-).mapLeft(errors => failure(errors).join("\n"));
+
+const createConfigFromEnv = pipe(
+  TaskEither.fromIOEither(new IOEither(getConfig)),
+  TaskEither.mapLeft(errors => failure(errors).join("\n"))
+);
 
 const program = createConfigFromEnv.chain(
   ({
@@ -197,16 +211,17 @@ const program = createConfigFromEnv.chain(
     GITHUB_ACTION,
     SPECTRAL_FILE_PATH
   }) =>
-    getRepositoryInfoFromEvent(GITHUB_EVENT_PATH)
-      .chain(event =>
+    pipe(
+      getRepositoryInfoFromEvent(GITHUB_EVENT_PATH),
+      TaskEither.chain(event =>
         createOctokitInstance(GITHUB_TOKEN).map(octokit => ({ octokit, event }))
-      )
-      .chain(({ octokit, event }) =>
+      ),
+      TaskEither.chain(({ octokit, event }) =>
         createGithubCheck(octokit, event, GITHUB_ACTION, GITHUB_SHA).map(
           check => ({ octokit, event, check })
         )
-      )
-      .chain(({ octokit, event, check }) =>
+      ),
+      TaskEither.chain(({ octokit, event, check }) =>
         readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH))
           .chain(content =>
             createSpectralAnnotations(SPECTRAL_FILE_PATH, content)
@@ -236,6 +251,7 @@ const program = createConfigFromEnv.chain(
             )
           )
       )
+    )
 );
 
 program
