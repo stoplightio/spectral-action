@@ -76,8 +76,8 @@ const createSpectralAnnotations = (path: string, parsed: oasDocument) =>
             validationResult.severity === DiagnosticSeverity.Error
               ? "failure"
               : validationResult.severity === DiagnosticSeverity.Warning
-              ? "warning"
-              : "notice";
+                ? "warning"
+                : "notice";
 
           const sameLine =
             validationResult.range.start.line ===
@@ -184,8 +184,8 @@ const updateGithubCheck = (
           summary: message
             ? message
             : conclusion === "success"
-            ? "Lint completed successfully"
-            : "Lint completed with some errors",
+              ? "Lint completed successfully"
+              : "Lint completed with some errors",
           annotations
         }
       }),

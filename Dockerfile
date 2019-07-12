@@ -11,7 +11,7 @@ LABEL maintainer="Vincenzo Chianese <vincenz.chianese@icloud.com>"
 
 
 COPY package* ./
-RUN npm ci
+RUN yarn
 
 COPY src ./src
 COPY tsconfig.json tsconfig.json
@@ -22,7 +22,7 @@ FROM node:12 as installer
 
 ENV NODE_ENV production
 COPY package.json package.json
-RUN npm install --production
+RUN yarn --production
 
 FROM node:12 as runtime
 ENV NODE_ENV production
