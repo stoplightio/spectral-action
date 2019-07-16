@@ -3,6 +3,8 @@ import * as Octokit from "@octokit/rest";
 import { Spectral } from "@stoplight/spectral";
 import { EOL } from "os";
 import { promises as fs } from "fs";
+import { Config } from "./config";
+import { OasDocument } from "./oasDocument";
 import {
   oas2Functions,
   rules as oas2Rules
@@ -16,28 +18,9 @@ import * as IOEither from "fp-ts/lib/IOEither";
 import * as IO from "fp-ts/lib/IO";
 import * as TaskEither from "fp-ts/lib/TaskEither";
 import * as Either from "fp-ts/lib/Either";
-import * as t from "io-ts";
 import { error, log } from "fp-ts/lib/Console";
 import { failure } from "io-ts/lib/PathReporter";
 import { pipe } from "fp-ts/lib/pipeable";
-
-const oasDocument = t.partial({
-  swagger: t.string,
-  openapi: t.string
-});
-
-type oasDocument = t.TypeOf<typeof oasDocument>;
-
-const Config = t.strict({
-  GITHUB_EVENT_PATH: t.string,
-  GITHUB_TOKEN: t.string,
-  GITHUB_SHA: t.string,
-  GITHUB_WORKSPACE: t.string,
-  SPECTRAL_FILE_PATH: t.string,
-  GITHUB_ACTION: t.string
-});
-
-type Config = t.TypeOf<typeof Config>;
 
 type Event = {
   repository: {
@@ -61,7 +44,7 @@ const createSpectral = async (doc: "oas2" | "oas3") => {
   return spectral;
 };
 
-const createSpectralAnnotations = (path: string, parsed: oasDocument) =>
+const createSpectralAnnotations = (path: string, parsed: OasDocument) =>
   pipe(
     TaskEither.tryCatch(
       () => createSpectral(parsed.swagger ? "oas2" : "oas3"),
@@ -145,7 +128,7 @@ const readFileToAnalyze = (path: string) =>
     TaskEither.chain(content =>
       TaskEither.fromEither(
         pipe(
-          oasDocument.decode(content),
+          OasDocument.decode(content),
           Either.mapLeft(e => failure(e).join(EOL))
         )
       )
