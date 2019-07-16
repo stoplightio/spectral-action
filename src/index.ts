@@ -1,19 +1,19 @@
 import { join } from "path";
+import { DiagnosticSeverity } from "@stoplight/types";
 import * as Octokit from "@octokit/rest";
-import { Spectral } from "@stoplight/spectral";
 import { EOL } from "os";
 import { promises as fs } from "fs";
+
 import { Config } from "./config";
 import { OasDocument } from "./oasDocument";
+import { runSpectral, createSpectral } from "./spectral";
 import {
-  oas2Functions,
-  rules as oas2Rules
-} from "@stoplight/spectral/dist/rulesets/oas2";
-import {
-  oas3Functions,
-  rules as oas3Rules
-} from "@stoplight/spectral/dist/rulesets/oas3";
-import { DiagnosticSeverity } from "@stoplight/types";
+  createGithubCheck,
+  createOctokitInstance,
+  getRepositoryInfoFromEvent,
+  updateGithubCheck
+} from "./octokit";
+
 import * as IOEither from "fp-ts/lib/IOEither";
 import * as IO from "fp-ts/lib/IO";
 import * as TaskEither from "fp-ts/lib/TaskEither";
@@ -22,40 +22,10 @@ import { error, log } from "fp-ts/lib/Console";
 import { failure } from "io-ts/lib/PathReporter";
 import { pipe } from "fp-ts/lib/pipeable";
 
-type Event = {
-  repository: {
-    name: string;
-    owner: {
-      login: string;
-    };
-  };
-};
-
-const createSpectral = async (doc: "oas2" | "oas3") => {
-  const spectral = new Spectral();
-  if (doc === "oas2") {
-    spectral.addFunctions(oas2Functions());
-    spectral.addRules(await oas2Rules());
-  } else {
-    spectral.addFunctions(oas3Functions());
-    spectral.addRules(await oas3Rules());
-  }
-
-  return spectral;
-};
-
 const createSpectralAnnotations = (path: string, parsed: OasDocument) =>
   pipe(
-    TaskEither.tryCatch(
-      () => createSpectral(parsed.swagger ? "oas2" : "oas3"),
-      e => Either.toError(e).message
-    ),
-    TaskEither.chain(spectral =>
-      TaskEither.tryCatch(
-        () => spectral.run(parsed),
-        e => Either.toError(e).message
-      )
-    ),
+    createSpectral(parsed.swagger ? "oas2" : "oas3"),
+    TaskEither.chain(spectral => runSpectral(spectral, parsed)),
     TaskEither.map(results =>
       results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(
         validationResult => {
@@ -89,31 +59,6 @@ const createSpectralAnnotations = (path: string, parsed: OasDocument) =>
     )
   );
 
-const createOctokitInstance = (token: string) =>
-  TaskEither.fromIOEither(
-    IOEither.tryCatch(
-      () => new Octokit({ auth: `token ${token}` }),
-      e => Either.toError(e).message
-    )
-  );
-
-const createGithubCheck = (
-  octokit: Octokit,
-  event: { owner: string; repo: string },
-  name: string,
-  head_sha: string
-) =>
-  TaskEither.tryCatch(
-    () =>
-      octokit.checks.create({
-        owner: event.owner,
-        repo: event.repo,
-        name,
-        head_sha
-      }),
-    e => Either.toError(e).message
-  );
-
 const readFileToAnalyze = (path: string) =>
   pipe(
     TaskEither.tryCatch(
@@ -133,56 +78,6 @@ const readFileToAnalyze = (path: string) =>
         )
       )
     )
-  );
-
-const getRepositoryInfoFromEvent = (eventPath: string) =>
-  pipe(
-    TaskEither.fromIOEither(
-      IOEither.tryCatch<string, Event>(
-        () => require(eventPath),
-        e => Either.toError(e).message
-      )
-    ),
-    TaskEither.map(event => {
-      const { repository } = event;
-      const {
-        owner: { login: owner }
-      } = repository;
-      const { name: repo } = repository;
-      return { owner, repo };
-    })
-  );
-
-const updateGithubCheck = (
-  octokit: Octokit,
-  actionName: string,
-  check: Octokit.Response<Octokit.ChecksCreateResponse>,
-  event: { owner: string; repo: string },
-  annotations: Octokit.ChecksUpdateParamsOutputAnnotations[],
-  conclusion: Octokit.ChecksUpdateParams["conclusion"],
-  message?: string
-) =>
-  TaskEither.tryCatch(
-    () =>
-      octokit.checks.update({
-        check_run_id: check.data.id,
-        owner: event.owner,
-        name: actionName,
-        repo: event.repo,
-        status: "completed",
-        conclusion,
-        completed_at: new Date().toISOString(),
-        output: {
-          title: actionName,
-          summary: message
-            ? message
-            : conclusion === "success"
-            ? "Lint completed successfully"
-            : "Lint completed with some errors",
-          annotations
-        }
-      }),
-    e => Either.toError(e).message
   );
 
 const getEnv = IO.of(process.env);
