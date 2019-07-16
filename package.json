@@ -19,15 +19,23 @@
   "homepage": "https://github.com/XVincentX/spectral-action#readme",
   "devDependencies": {
     "@types/urijs": "^1.19.3",
+    "husky": "^3.0.0",
+    "prettier": "^1.18.2",
+    "pretty-quick": "^1.11.1",
     "typescript": "^3.5.3"
   },
   "dependencies": {
-    "@octokit/rest": "^16.28.3",
-    "@stoplight/json": "^2.3.2",
+    "@octokit/rest": "^16.28.4",
+    "@stoplight/json": "^3.0.1",
     "@stoplight/spectral": "^4.0.0",
-    "@types/node": "^12.6.2",
-    "fp-ts": "^1.19.4",
-    "io-ts": "^1.10.4",
+    "@types/node": "^12.6.3",
+    "fp-ts": "^2.0.2",
+    "io-ts": "^2.0.0",
     "tslib": "^1.10.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
   }
 }
