@@ -55,7 +55,7 @@ const createSpectralAnnotations = (path: string, parsed: OasDocument) =>
             path
           };
         }
-      )
+      ).sort((a, b)=> a.start_line > b.start_line)
     )
   );
 
