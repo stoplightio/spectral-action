@@ -27,8 +27,8 @@ const createSpectralAnnotations = (path: string, parsed: OasDocument) =>
     createSpectral(parsed.swagger ? "oas2" : "oas3"),
     TaskEither.chain(spectral => runSpectral(spectral, parsed)),
     TaskEither.map(results =>
-      results.map<Octokit.ChecksUpdateParamsOutputAnnotations>(
-        validationResult => {
+      results
+        .map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
           const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations["annotation_level"] =
             validationResult.severity === DiagnosticSeverity.Error
               ? "failure"
@@ -54,8 +54,8 @@ const createSpectralAnnotations = (path: string, parsed: OasDocument) =>
               : undefined,
             path
           };
-        }
-      )
+        })
+        .sort((a, b) => (a.start_line > b.start_line ? 1 : -1))
     )
   );
 

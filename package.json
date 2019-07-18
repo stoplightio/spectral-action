@@ -27,8 +27,8 @@
   "dependencies": {
     "@octokit/rest": "^16.28.4",
     "@stoplight/json": "^3.0.1",
-    "@stoplight/spectral": "^4.0.0",
-    "@types/node": "^12.6.3",
+    "@stoplight/spectral": "^4.0.1",
+    "@types/node": "^12.6.8",
     "fp-ts": "^2.0.2",
     "io-ts": "^2.0.0",
     "tslib": "^1.10.0"
