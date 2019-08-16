@@ -1,0 +1,13 @@
+on: push
+name: Build Pipeline
+jobs:
+  spectralChecks:
+    name: Spectral checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Spectral checks
+        uses: ./
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SPECTRAL_FILE_PATH: test.oas.json
