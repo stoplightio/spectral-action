@@ -1,6 +1,5 @@
 import { join } from "path";
 import { DiagnosticSeverity } from "@stoplight/types";
-import * as Octokit from "@octokit/rest";
 import { EOL } from "os";
 import { promises as fs } from "fs";
 
@@ -21,6 +20,7 @@ import * as Either from "fp-ts/lib/Either";
 import { error, log } from "fp-ts/lib/Console";
 import { failure } from "io-ts/lib/PathReporter";
 import { pipe } from "fp-ts/lib/pipeable";
+import { ChecksUpdateParamsOutputAnnotations } from "@octokit/rest";
 
 const createSpectralAnnotations = (path: string, parsed: OasDocument) =>
   pipe(
@@ -28,8 +28,8 @@ const createSpectralAnnotations = (path: string, parsed: OasDocument) =>
     TaskEither.chain(spectral => runSpectral(spectral, parsed)),
     TaskEither.map(results =>
       results
-        .map<Octokit.ChecksUpdateParamsOutputAnnotations>(validationResult => {
-          const annotation_level: Octokit.ChecksUpdateParamsOutputAnnotations["annotation_level"] =
+        .map<ChecksUpdateParamsOutputAnnotations>(validationResult => {
+          const annotation_level: ChecksUpdateParamsOutputAnnotations["annotation_level"] =
             validationResult.severity === DiagnosticSeverity.Error
               ? "failure"
               : validationResult.severity === DiagnosticSeverity.Warning
@@ -103,8 +103,8 @@ const program = pipe(
       GITHUB_WORKSPACE,
       GITHUB_ACTION,
       SPECTRAL_FILE_PATH
-    }) => {
-      return pipe(
+    }) =>
+      pipe(
         getRepositoryInfoFromEvent(GITHUB_EVENT_PATH),
         TaskEither.chain(event =>
           pipe(
@@ -150,8 +150,7 @@ const program = pipe(
             )
           )
         )
-      );
-    }
+      )
   )
 );
 

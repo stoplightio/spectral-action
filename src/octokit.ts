@@ -1,8 +1,14 @@
-import * as Octokit from "@octokit/rest";
+import { GitHub } from "@actions/github";
 import * as TaskEither from "fp-ts/lib/TaskEither";
 import * as IOEither from "fp-ts/lib/IOEither";
 import * as Either from "fp-ts/lib/Either";
 import { pipe } from "fp-ts/lib/pipeable";
+import {
+  ChecksCreateResponse,
+  ChecksUpdateParamsOutputAnnotations,
+  ChecksUpdateParams,
+  Response
+} from "@octokit/rest";
 
 type Event = {
   repository: {
@@ -16,13 +22,13 @@ type Event = {
 export const createOctokitInstance = (token: string) =>
   TaskEither.fromIOEither(
     IOEither.tryCatch(
-      () => new Octokit({ auth: `token ${token}` }),
+      () => new GitHub(token),
       e => Either.toError(e).message
     )
   );
 
 export const createGithubCheck = (
-  octokit: Octokit,
+  octokit: GitHub,
   event: { owner: string; repo: string },
   name: string,
   head_sha: string
@@ -57,12 +63,12 @@ export const getRepositoryInfoFromEvent = (eventPath: string) =>
   );
 
 export const updateGithubCheck = (
-  octokit: Octokit,
+  octokit: GitHub,
   actionName: string,
-  check: Octokit.Response<Octokit.ChecksCreateResponse>,
+  check: Response<ChecksCreateResponse>,
   event: { owner: string; repo: string },
-  annotations: Octokit.ChecksUpdateParamsOutputAnnotations[],
-  conclusion: Octokit.ChecksUpdateParams["conclusion"],
+  annotations: ChecksUpdateParamsOutputAnnotations[],
+  conclusion: ChecksUpdateParams["conclusion"],
   message?: string
 ) =>
   TaskEither.tryCatch(
