@@ -18,6 +18,9 @@
   },
   "homepage": "https://github.com/XVincentX/spectral-action#readme",
   "devDependencies": {
+    "@octokit/graphql": "^4.3.1",
+    "@octokit/rest": "^16.35.0",
+    "@types/node": "^12.12.12",
     "@types/urijs": "^1.19.4",
     "husky": "^3.1.0",
     "prettier": "^1.19.1",
@@ -25,10 +28,10 @@
     "typescript": "^3.7.2"
   },
   "dependencies": {
-    "@octokit/rest": "^16.35.0",
+    "@actions/core": "^1.2.0",
+    "@actions/github": "^1.1.0",
     "@stoplight/json": "^3.2.1",
     "@stoplight/spectral": "^4.2.0",
-    "@types/node": "^12.12.12",
     "fp-ts": "^2.1.2",
     "io-ts": "^2.0.1",
     "tslib": "^1.10.0"

@@ -1,13 +1,12 @@
 {
-  "include": [
-    "./src"
-  ],
+  "include": ["./src"],
   "compilerOptions": {
     /* Basic Options */
     "outDir": "./dist",
     "sourceMap": true,
     "target": "esnext",
     "module": "commonjs",
+    "esModuleInterop": true,
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
