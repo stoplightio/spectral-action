@@ -20,7 +20,7 @@ import { failure } from "io-ts/lib/PathReporter";
 import { pipe } from "fp-ts/lib/pipeable";
 import { ChecksUpdateParamsOutputAnnotations } from "@octokit/rest";
 
-const createSpectralAnnotations = (path: string, parsed: object) =>
+const createSpectralAnnotations = (path: string, parsed: string) =>
   pipe(
     createSpectral(),
     TaskEither.chain(spectral => runSpectral(spectral, parsed)),
@@ -62,9 +62,6 @@ const readFileToAnalyze = (path: string) =>
     TaskEither.tryCatch(
       () => fs.readFile(path, { encoding: "utf8" }),
       Either.toError
-    ),
-    TaskEither.chain(content =>
-      TaskEither.fromEither(Either.parseJSON(content, Either.toError))
     )
   );
 
@@ -110,7 +107,7 @@ const program = pipe(
           pipe(
             readFileToAnalyze(join(GITHUB_WORKSPACE, INPUT_FILE_PATH)),
             TaskEither.chain(content =>
-              createSpectralAnnotations(INPUT_FILE_PATH, content as object)
+              createSpectralAnnotations(INPUT_FILE_PATH, content)
             ),
             TaskEither.chain(annotations => {
               info(JSON.stringify(annotations));
