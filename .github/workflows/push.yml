@@ -10,3 +10,4 @@ jobs:
         uses: ./
         with:
           file_path: test.oas.json
+          repo_token: ${{ secrets.GITHUB_TOKEN }}

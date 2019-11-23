@@ -21,10 +21,7 @@ type Event = {
 
 export const createOctokitInstance = (token: string) =>
   TaskEither.fromIOEither(
-    IOEither.tryCatch(
-      () => new GitHub(token),
-      e => Either.toError(e).message
-    )
+    IOEither.tryCatch(() => new GitHub(token), Either.toError)
   );
 
 export const createGithubCheck = (
@@ -41,16 +38,13 @@ export const createGithubCheck = (
         name,
         head_sha
       }),
-    e => Either.toError(e).message
+    Either.toError
   );
 
 export const getRepositoryInfoFromEvent = (eventPath: string) =>
   pipe(
     TaskEither.fromIOEither(
-      IOEither.tryCatch<string, Event>(
-        () => require(eventPath),
-        e => Either.toError(e).message
-      )
+      IOEither.tryCatch<Error, Event>(() => require(eventPath), Either.toError)
     ),
     TaskEither.map(event => {
       const { repository } = event;
@@ -91,5 +85,5 @@ export const updateGithubCheck = (
           annotations
         }
       }),
-    e => Either.toError(e).message
+    Either.toError
   );

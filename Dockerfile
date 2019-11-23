@@ -1,4 +1,4 @@
-FROM node:12 as builder
+FROM node:13 as builder
 
 COPY package* ./
 RUN yarn
@@ -8,13 +8,13 @@ COPY tsconfig.json tsconfig.json
 
 RUN ./node_modules/.bin/tsc || true
 
-FROM node:12 as installer
+FROM node:13 as installer
 
 ENV NODE_ENV production
 COPY package.json package.json
 RUN yarn --production
 
-FROM node:12 as runtime
+FROM node:13-alpine as runtime
 ENV NODE_ENV production
 COPY package.json /action/package.json
 COPY --from=builder dist /action/dist

@@ -11,9 +11,16 @@
       "program": "${workspaceFolder}/src/index.ts",
       "preLaunchTask": "tsc: build - tsconfig.json",
       "sourceMaps": true,
-      "outFiles": [
-        "${workspaceFolder}/dist/*.js"
-      ]
+      "outFiles": ["${workspaceFolder}/dist/*.js"],
+      "skipFiles": ["${workspaceFolder}/node_modules/fp-ts/**/*.js"],
+      "env": {
+        "GITHUB_EVENT_PATH": "",
+        "INPUT_REPO_TOKEN": "",
+        "GITHUB_SHA": "",
+        "GITHUB_WORKSPACE": "",
+        "GITHUB_ACTION": "",
+        "INPUT_FILE_PATH": "test.oas.json"
+      }
     }
   ]
 }

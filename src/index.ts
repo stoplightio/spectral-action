@@ -2,9 +2,7 @@ import { join } from "path";
 import { DiagnosticSeverity } from "@stoplight/types";
 import { EOL } from "os";
 import { promises as fs } from "fs";
-
 import { Config } from "./config";
-import { OasDocument } from "./oasDocument";
 import { runSpectral, createSpectral } from "./spectral";
 import {
   createGithubCheck,
@@ -13,18 +11,18 @@ import {
   updateGithubCheck
 } from "./octokit";
 
+import { error, info } from "@actions/core";
 import * as IOEither from "fp-ts/lib/IOEither";
 import * as IO from "fp-ts/lib/IO";
 import * as TaskEither from "fp-ts/lib/TaskEither";
 import * as Either from "fp-ts/lib/Either";
-import { error, log } from "fp-ts/lib/Console";
 import { failure } from "io-ts/lib/PathReporter";
 import { pipe } from "fp-ts/lib/pipeable";
 import { ChecksUpdateParamsOutputAnnotations } from "@octokit/rest";
 
-const createSpectralAnnotations = (path: string, parsed: OasDocument) =>
+const createSpectralAnnotations = (path: string, parsed: object) =>
   pipe(
-    createSpectral(parsed.swagger ? "oas2" : "oas3"),
+    createSpectral(),
     TaskEither.chain(spectral => runSpectral(spectral, parsed)),
     TaskEither.map(results =>
       results
@@ -63,20 +61,10 @@ const readFileToAnalyze = (path: string) =>
   pipe(
     TaskEither.tryCatch(
       () => fs.readFile(path, { encoding: "utf8" }),
-      e => Either.toError(e).message
+      Either.toError
     ),
     TaskEither.chain(content =>
-      TaskEither.fromEither(
-        Either.parseJSON(content, e => Either.toError(e).message)
-      )
-    ),
-    TaskEither.chain(content =>
-      TaskEither.fromEither(
-        pipe(
-          OasDocument.decode(content),
-          Either.mapLeft(e => failure(e).join(EOL))
-        )
-      )
+      TaskEither.fromEither(Either.parseJSON(content, Either.toError))
     )
   );
 
@@ -85,11 +73,11 @@ const getEnv = IO.of(process.env);
 const decodeConfig = (env: NodeJS.ProcessEnv) =>
   pipe(
     Config.decode(env),
-    Either.mapLeft(e => failure(e).join(EOL))
+    Either.mapLeft(e => new Error(failure(e).join(EOL)))
   );
 
 const createConfigFromEnv = pipe(
-  IOEither.ioEither.fromIO<string, NodeJS.ProcessEnv>(getEnv),
+  IOEither.ioEither.fromIO<Error, NodeJS.ProcessEnv>(getEnv),
   IOEither.chain(env => IOEither.fromEither(decodeConfig(env)))
 );
 
@@ -98,17 +86,17 @@ const program = pipe(
   TaskEither.chain(
     ({
       GITHUB_EVENT_PATH,
-      GITHUB_TOKEN,
+      INPUT_REPO_TOKEN,
       GITHUB_SHA,
       GITHUB_WORKSPACE,
       GITHUB_ACTION,
-      SPECTRAL_FILE_PATH
+      INPUT_FILE_PATH
     }) =>
       pipe(
         getRepositoryInfoFromEvent(GITHUB_EVENT_PATH),
         TaskEither.chain(event =>
           pipe(
-            createOctokitInstance(GITHUB_TOKEN),
+            createOctokitInstance(INPUT_REPO_TOKEN),
             TaskEither.map(octokit => ({ octokit, event }))
           )
         ),
@@ -120,12 +108,13 @@ const program = pipe(
         ),
         TaskEither.chain(({ octokit, event, check }) =>
           pipe(
-            readFileToAnalyze(join(GITHUB_WORKSPACE, SPECTRAL_FILE_PATH)),
+            readFileToAnalyze(join(GITHUB_WORKSPACE, INPUT_FILE_PATH)),
             TaskEither.chain(content =>
-              createSpectralAnnotations(SPECTRAL_FILE_PATH, content)
+              createSpectralAnnotations(INPUT_FILE_PATH, content as object)
             ),
-            TaskEither.chain(annotations =>
-              updateGithubCheck(
+            TaskEither.chain(annotations => {
+              info(JSON.stringify(annotations));
+              return updateGithubCheck(
                 octokit,
                 GITHUB_ACTION,
                 check,
@@ -135,8 +124,8 @@ const program = pipe(
                   -1
                   ? "success"
                   : "failure"
-              )
-            ),
+              );
+            }),
             TaskEither.orElse(e =>
               updateGithubCheck(
                 octokit,
@@ -145,7 +134,7 @@ const program = pipe(
                 event,
                 [],
                 "failure",
-                Either.toError(e).message
+                e.message
               )
             )
           )
@@ -157,6 +146,9 @@ const program = pipe(
 program().then(result =>
   pipe(
     result,
-    Either.fold(error, () => log("Worked fine"))
+    Either.fold(
+      e => error(e.message),
+      () => info("Worked fine")
+    )
   )
 );
