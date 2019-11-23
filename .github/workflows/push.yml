@@ -8,6 +8,5 @@ jobs:
       - uses: actions/checkout@master
       - name: Spectral checks
         uses: ./
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SPECTRAL_FILE_PATH: test.oas.json
+        with:
+          file_path: test.oas.json
