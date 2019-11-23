@@ -6,7 +6,7 @@ RUN yarn
 COPY src ./src
 COPY tsconfig.json tsconfig.json
 
-RUN ./node_modules/.bin/tsc
+RUN ./node_modules/.bin/tsc || true
 
 FROM node:12 as installer
 

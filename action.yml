@@ -6,6 +6,7 @@ inputs:
     required: true
     description: The file path to lint with Spectral
 runs:
+  using: docker
   image: Dockerfile
 branding:
   icon: code

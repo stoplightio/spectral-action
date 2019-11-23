@@ -19,6 +19,7 @@
   "homepage": "https://github.com/XVincentX/spectral-action#readme",
   "devDependencies": {
     "@octokit/graphql": "^4.3.1",
+    "@octokit/request": "^5.3.1",
     "@octokit/rest": "^16.35.0",
     "@types/node": "^12.12.12",
     "@types/urijs": "^1.19.4",

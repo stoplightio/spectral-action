@@ -1,7 +1,7 @@
 {
   "include": ["./src"],
   "compilerOptions": {
-    /* Basic Options */
+    "noEmitOnError": false,
     "outDir": "./dist",
     "sourceMap": true,
     "target": "esnext",
