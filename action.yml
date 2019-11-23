@@ -1,0 +1,12 @@
+name: Spectral Linting
+author: Vincenzo Chianese
+description: Lint your files with Spectral
+inputs:
+  file_path:
+    required: true
+    description: The file path to lint with Spectral
+runs:
+  image: Dockerfile
+branding:
+  icon: code
+  color: yellow
