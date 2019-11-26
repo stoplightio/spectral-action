@@ -18,12 +18,13 @@ import { failure } from 'io-ts/lib/PathReporter';
 import { pipe } from 'fp-ts/lib/pipeable';
 import { identity } from 'lodash';
 import { ChecksUpdateParamsOutputAnnotations } from '@octokit/rest';
+import * as path from 'path';
 
 const CHECK_NAME = 'Lint';
 const traverseTask = array.traverse(T.task);
 type fileWithContent = { file: string; content: string };
 
-const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[]) =>
+const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], basePath: string) =>
   pipe(
     createSpectral(ruleset),
     TE.chain(spectral => {
@@ -56,7 +57,7 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[]) =
               end_line: 1 + vl.range.end.line,
               start_column: sameLine ? vl.range.start.character : undefined,
               end_column: sameLine ? vl.range.end.character : undefined,
-              path: validationResult.path,
+              path: path.relative(basePath, validationResult.path),
             };
           });
         })
@@ -125,7 +126,7 @@ const program = pipe(
         TE.chain(({ octokit, event, check }) =>
           pipe(
             readFilesToAnalyze(join(GITHUB_WORKSPACE, INPUT_FILE_GLOB)),
-            TE.chain(fileContents => createSpectralAnnotations(INPUT_SPECTRAL_RULESET, fileContents)),
+            TE.chain(fileContents => createSpectralAnnotations(INPUT_SPECTRAL_RULESET, fileContents, GITHUB_WORKSPACE)),
             TE.chain(annotations =>
               updateGithubCheck(
                 octokit,
