@@ -2,7 +2,7 @@ name: Spectral Linting
 author: Vincenzo Chianese
 description: Lint your files with Spectral
 inputs:
-  file_path:
+  file_glob:
     required: true
     description: The file path to lint with Spectral
   spectral_ruleset:

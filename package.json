@@ -21,6 +21,7 @@
     "@octokit/graphql": "^4.3.1",
     "@octokit/request": "^5.3.1",
     "@octokit/rest": "^16.35.0",
+    "@types/lodash": "^4.14.149",
     "@types/node": "^12.12.14",
     "@types/urijs": "^1.19.4",
     "husky": "^3.1.0",
@@ -33,8 +34,10 @@
     "@actions/github": "^1.1.0",
     "@stoplight/json": "^3.2.1",
     "@stoplight/spectral": "^4.2.0",
+    "fast-glob": "^3.1.0",
     "fp-ts": "^2.2.0",
     "io-ts": "^2.0.1",
+    "lodash": "^4.17.15",
     "tslib": "^1.10.0"
   },
   "husky": {

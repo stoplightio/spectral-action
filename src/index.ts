@@ -1,62 +1,98 @@
 import { join } from 'path';
 import { DiagnosticSeverity } from '@stoplight/types';
+import { warning } from '@actions/core';
 import { EOL } from 'os';
 import { promises as fs } from 'fs';
+import { array, flatten } from 'fp-ts/lib/Array';
 import { Config } from './config';
 import { runSpectral, createSpectral } from './spectral';
 import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
-
+import glob from 'fast-glob';
 import { error, info, setFailed } from '@actions/core';
 import * as IOEither from 'fp-ts/lib/IOEither';
 import * as IO from 'fp-ts/lib/IO';
-import * as TaskEither from 'fp-ts/lib/TaskEither';
-import * as Either from 'fp-ts/lib/Either';
+import * as TE from 'fp-ts/lib/TaskEither';
+import * as T from 'fp-ts/lib/Task';
+import * as E from 'fp-ts/lib/Either';
 import { failure } from 'io-ts/lib/PathReporter';
 import { pipe } from 'fp-ts/lib/pipeable';
+import { identity } from 'lodash';
 import { ChecksUpdateParamsOutputAnnotations } from '@octokit/rest';
 
 const CHECK_NAME = 'Lint';
+const traverseTask = array.traverse(T.task);
+type fileWithContent = { file: string; content: string };
 
-const createSpectralAnnotations = (path: string, ruleset: string, parsed: string) =>
+const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[]) =>
   pipe(
     createSpectral(ruleset),
-    TaskEither.chain(spectral => runSpectral(spectral, parsed)),
-    TaskEither.map(results =>
-      results
-        .map<ChecksUpdateParamsOutputAnnotations>(validationResult => {
-          const annotation_level: ChecksUpdateParamsOutputAnnotations['annotation_level'] =
-            validationResult.severity === DiagnosticSeverity.Error
-              ? 'failure'
-              : validationResult.severity === DiagnosticSeverity.Warning
-              ? 'warning'
-              : 'notice';
+    TE.chain(spectral => {
+      const spectralRuns = parsed.map(v =>
+        pipe(
+          runSpectral(spectral, v.content),
+          TE.map(rules => ({ path: v.file, rules }))
+        )
+      );
+      return array.sequence(TE.taskEither)(spectralRuns);
+    }),
+    TE.map(results =>
+      flatten(
+        results.map(validationResult => {
+          return validationResult.rules.map<ChecksUpdateParamsOutputAnnotations>(vl => {
+            const annotation_level: ChecksUpdateParamsOutputAnnotations['annotation_level'] =
+              vl.severity === DiagnosticSeverity.Error
+                ? 'failure'
+                : vl.severity === DiagnosticSeverity.Warning
+                ? 'warning'
+                : 'notice';
 
-          const sameLine = validationResult.range.start.line === validationResult.range.end.line;
+            const sameLine = vl.range.start.line === vl.range.end.line;
 
-          return {
-            annotation_level,
-            message: validationResult.message,
-            title: validationResult.code as string,
-            start_line: 1 + validationResult.range.start.line,
-            end_line: 1 + validationResult.range.end.line,
-            start_column: sameLine ? validationResult.range.start.character : undefined,
-            end_column: sameLine ? validationResult.range.end.character : undefined,
-            path,
-          };
+            return {
+              annotation_level,
+              message: vl.message,
+              title: vl.code as string,
+              start_line: 1 + vl.range.start.line,
+              end_line: 1 + vl.range.end.line,
+              start_column: sameLine ? vl.range.start.character : undefined,
+              end_column: sameLine ? vl.range.end.character : undefined,
+              path: validationResult.path,
+            };
+          });
         })
-        .sort((a, b) => (a.start_line > b.start_line ? 1 : -1))
+      ).sort((a, b) => (a.start_line > b.start_line ? 1 : -1))
     )
   );
 
-const readFileToAnalyze = (path: string) =>
-  TaskEither.tryCatch(() => fs.readFile(path, { encoding: 'utf8' }), Either.toError);
+const readFilesToAnalyze = (path: string) => {
+  const readFile = (file: string) => TE.tryCatch(() => fs.readFile(file, { encoding: 'utf8' }), E.toError);
+
+  return pipe(
+    TE.tryCatch(() => glob(path), E.toError),
+    TE.chain(fileList =>
+      pipe(
+        traverseTask(fileList, file =>
+          pipe(
+            readFile(file),
+            TE.map(content => ({ file, content }))
+          )
+        ),
+        T.map(e => {
+          const separated = array.partitionMap<E.Either<Error, fileWithContent>, Error, fileWithContent>(e, identity);
+          separated.left.map(e => warning(`Unable to read file: ${e.message}`));
+          return E.right(separated.right);
+        })
+      )
+    )
+  );
+};
 
 const getEnv = IO.of(process.env);
 
 const decodeConfig = (env: NodeJS.ProcessEnv) =>
   pipe(
     Config.decode(env),
-    Either.mapLeft(e => new Error(failure(e).join(EOL)))
+    E.mapLeft(e => new Error(failure(e).join(EOL)))
   );
 
 const createConfigFromEnv = pipe(
@@ -65,28 +101,28 @@ const createConfigFromEnv = pipe(
 );
 
 const program = pipe(
-  TaskEither.fromIOEither(createConfigFromEnv),
-  TaskEither.chain(
-    ({ GITHUB_EVENT_PATH, INPUT_REPO_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, INPUT_FILE_PATH, INPUT_SPECTRAL_RULESET }) =>
+  TE.fromIOEither(createConfigFromEnv),
+  TE.chain(
+    ({ GITHUB_EVENT_PATH, INPUT_REPO_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, INPUT_FILE_GLOB, INPUT_SPECTRAL_RULESET }) =>
       pipe(
         getRepositoryInfoFromEvent(GITHUB_EVENT_PATH),
-        TaskEither.chain(event =>
+        TE.chain(event =>
           pipe(
             createOctokitInstance(INPUT_REPO_TOKEN),
-            TaskEither.map(octokit => ({ octokit, event }))
+            TE.map(octokit => ({ octokit, event }))
           )
         ),
-        TaskEither.chain(({ octokit, event }) =>
+        TE.chain(({ octokit, event }) =>
           pipe(
             createGithubCheck(octokit, event, CHECK_NAME, GITHUB_SHA),
-            TaskEither.map(check => ({ octokit, event, check }))
+            TE.map(check => ({ octokit, event, check }))
           )
         ),
-        TaskEither.chain(({ octokit, event, check }) =>
+        TE.chain(({ octokit, event, check }) =>
           pipe(
-            readFileToAnalyze(join(GITHUB_WORKSPACE, INPUT_FILE_PATH)),
-            TaskEither.chain(content => createSpectralAnnotations(INPUT_FILE_PATH, INPUT_SPECTRAL_RULESET, content)),
-            TaskEither.chain(annotations =>
+            readFilesToAnalyze(join(GITHUB_WORKSPACE, INPUT_FILE_GLOB)),
+            TE.chain(fileContents => createSpectralAnnotations(INPUT_SPECTRAL_RULESET, fileContents)),
+            TE.chain(annotations =>
               updateGithubCheck(
                 octokit,
                 CHECK_NAME,
@@ -96,7 +132,7 @@ const program = pipe(
                 annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
               )
             ),
-            TaskEither.orElse(e => {
+            TE.orElse(e => {
               setFailed(e.message);
               return updateGithubCheck(octokit, CHECK_NAME, check, event, [], 'failure', e.message);
             })
@@ -109,7 +145,7 @@ const program = pipe(
 program().then(result =>
   pipe(
     result,
-    Either.fold(
+    E.fold(
       e => error(e.message),
       () => info('Worked fine')
     )
