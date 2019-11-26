@@ -33,7 +33,7 @@
     "@actions/github": "^1.1.0",
     "@stoplight/json": "^3.2.1",
     "@stoplight/spectral": "^4.2.0",
-    "fp-ts": "^2.1.2",
+    "fp-ts": "^2.2.0",
     "io-ts": "^2.0.1",
     "tslib": "^1.10.0"
   },
