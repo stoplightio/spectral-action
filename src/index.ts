@@ -6,7 +6,7 @@ import { Config } from './config';
 import { runSpectral, createSpectral } from './spectral';
 import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
 
-import { error, info, setFailed } from '@actions/core';
+import { info, setFailed } from '@actions/core';
 import * as IOEither from 'fp-ts/lib/IOEither';
 import * as IO from 'fp-ts/lib/IO';
 import * as TaskEither from 'fp-ts/lib/TaskEither';
@@ -92,16 +92,17 @@ const program = pipe(
           pipe(
             readFileToAnalyze(join(GITHUB_WORKSPACE, INPUT_FILE_PATH)),
             TaskEither.chain(content => createSpectralAnnotations(INPUT_FILE_PATH, INPUT_SPECTRAL_RULESET, content)),
-            TaskEither.chain(annotations =>
-              updateGithubCheck(
+            TaskEither.chain(annotations => {
+              info(`${annotations.length} annotations found`);
+              return updateGithubCheck(
                 octokit,
                 GITHUB_ACTION,
                 check,
                 event,
                 annotations,
                 annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
-              )
-            ),
+              );
+            }),
             TaskEither.orElse(e => {
               setFailed(e.message);
               return updateGithubCheck(octokit, GITHUB_ACTION, check, event, [], 'failure', e.message);
@@ -116,7 +117,7 @@ program().then(result =>
   pipe(
     result,
     Either.fold(
-      e => error(e.message),
+      e => setFailed(e.message),
       () => info('Worked fine')
     )
   )
