@@ -4,7 +4,7 @@ import { EOL } from 'os';
 import { promises as fs } from 'fs';
 import { Config } from './config';
 import { runSpectral, createSpectral } from './spectral';
-import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
+import { getGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
 
 import { info, setFailed } from '@actions/core';
 import * as IOEither from 'fp-ts/lib/IOEither';
@@ -68,7 +68,6 @@ const program = pipe(
     ({
       GITHUB_EVENT_PATH,
       INPUT_REPO_TOKEN,
-      GITHUB_SHA,
       GITHUB_WORKSPACE,
       GITHUB_ACTION,
       INPUT_FILE_PATH,
@@ -84,7 +83,7 @@ const program = pipe(
         ),
         TaskEither.chain(({ octokit, event }) =>
           pipe(
-            createGithubCheck(octokit, event, GITHUB_ACTION, GITHUB_SHA),
+            getGithubCheck(octokit, event),
             TaskEither.map(check => ({ octokit, event, check }))
           )
         ),

@@ -1,6 +1,4 @@
-on:
-  - push
-  - pull_request
+on: check_run
 name: Spectral Lint
 jobs:
   spectralChecks:
