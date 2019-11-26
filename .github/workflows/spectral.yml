@@ -11,6 +11,6 @@ jobs:
       - name: Spectral checks
         uses: ./
         with:
-          file_glob: ./**/*.json
+          file_glob: ./**/*.yml
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           spectral_ruleset: 'spectral:oas'
