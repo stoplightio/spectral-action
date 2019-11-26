@@ -1,5 +1,5 @@
 on: push
-name: Spectral Link
+name: Spectral Lint
 jobs:
   spectralChecks:
     name: Spectral checks
