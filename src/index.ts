@@ -6,7 +6,7 @@ import { Config } from './config';
 import { runSpectral, createSpectral } from './spectral';
 import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
 
-import { error, info, setFailed } from '@actions/core';
+import { info, setFailed } from '@actions/core';
 import * as IOEither from 'fp-ts/lib/IOEither';
 import * as IO from 'fp-ts/lib/IO';
 import * as TaskEither from 'fp-ts/lib/TaskEither';
@@ -116,7 +116,7 @@ program().then(result =>
   pipe(
     result,
     Either.fold(
-      e => error(e.message),
+      e => setFailed(e.message),
       () => info('Worked fine')
     )
   )

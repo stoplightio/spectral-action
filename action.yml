@@ -8,6 +8,7 @@ inputs:
   spectral_ruleset:
     required: true
     description: Ruleset file to load in Spectral
+    default: spectral.yml
 runs:
   using: docker
   image: Dockerfile
