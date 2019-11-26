@@ -5,7 +5,12 @@ inputs:
   file_glob:
     required: true
     description: The file path to lint with Spectral
+    default: '*.oas.{json,yml,yaml}'
   spectral_ruleset:
+    required: true
+    description: Ruleset file to load in Spectral
+    default: 'spectral:oas'
+  repo_token:
     required: true
     description: Ruleset file to load in Spectral
 runs:
