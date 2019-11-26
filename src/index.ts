@@ -106,9 +106,10 @@ const program = pipe(
         TaskEither.chain(({ octokit, event, check }) =>
           pipe(
             readFileToAnalyze(join(GITHUB_WORKSPACE, INPUT_FILE_PATH)),
-            TaskEither.chain(content =>
-              createSpectralAnnotations(INPUT_FILE_PATH, content)
-            ),
+            TaskEither.chain(content => {
+              info(content);
+              return createSpectralAnnotations(INPUT_FILE_PATH, content);
+            }),
             TaskEither.chain(annotations => {
               info(JSON.stringify(annotations));
               return updateGithubCheck(
