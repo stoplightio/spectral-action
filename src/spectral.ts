@@ -14,7 +14,7 @@ import {
 import { tryCatch } from 'fp-ts/lib/TaskEither';
 import { toError } from 'fp-ts/lib/Either';
 
-export const createSpectral = () => {
+export const createSpectral = (ruleset: string) => {
   return tryCatch(async () => {
     const spectral = new Spectral({ resolver: httpAndFileResolver });
     spectral.registerFormat('oas2', isOpenApiv2);
@@ -25,7 +25,7 @@ export const createSpectral = () => {
     spectral.registerFormat('json-schema-draft6', isJSONSchemaDraft6);
     spectral.registerFormat('json-schema-draft7', isJSONSchemaDraft7);
     spectral.registerFormat('json-schema-2019-09', isJSONSchemaDraft2019_09);
-    await spectral.loadRuleset('spectral:oas');
+    await spectral.loadRuleset(ruleset);
     return spectral;
   }, toError);
 };

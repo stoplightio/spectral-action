@@ -15,9 +15,9 @@ import { failure } from 'io-ts/lib/PathReporter';
 import { pipe } from 'fp-ts/lib/pipeable';
 import { ChecksUpdateParamsOutputAnnotations } from '@octokit/rest';
 
-const createSpectralAnnotations = (path: string, parsed: string) =>
+const createSpectralAnnotations = (path: string, ruleset: string, parsed: string) =>
   pipe(
-    createSpectral(),
+    createSpectral(ruleset),
     TaskEither.chain(spectral => runSpectral(spectral, parsed)),
     TaskEither.map(results =>
       results
@@ -65,7 +65,15 @@ const createConfigFromEnv = pipe(
 const program = pipe(
   TaskEither.fromIOEither(createConfigFromEnv),
   TaskEither.chain(
-    ({ GITHUB_EVENT_PATH, INPUT_REPO_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, GITHUB_ACTION, INPUT_FILE_PATH }) =>
+    ({
+      GITHUB_EVENT_PATH,
+      INPUT_REPO_TOKEN,
+      GITHUB_SHA,
+      GITHUB_WORKSPACE,
+      GITHUB_ACTION,
+      INPUT_FILE_PATH,
+      INPUT_SPECTRAL_RULESET,
+    }) =>
       pipe(
         getRepositoryInfoFromEvent(GITHUB_EVENT_PATH),
         TaskEither.chain(event =>
@@ -83,7 +91,7 @@ const program = pipe(
         TaskEither.chain(({ octokit, event, check }) =>
           pipe(
             readFileToAnalyze(join(GITHUB_WORKSPACE, INPUT_FILE_PATH)),
-            TaskEither.chain(content => createSpectralAnnotations(INPUT_FILE_PATH, content)),
+            TaskEither.chain(content => createSpectralAnnotations(INPUT_FILE_PATH, INPUT_SPECTRAL_RULESET, content)),
             TaskEither.chain(annotations =>
               updateGithubCheck(
                 octokit,

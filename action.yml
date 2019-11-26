@@ -5,6 +5,9 @@ inputs:
   file_path:
     required: true
     description: The file path to lint with Spectral
+  spectral_ruleset:
+    required: true
+    description: Ruleset file to load in Spectral
 runs:
   using: docker
   image: Dockerfile

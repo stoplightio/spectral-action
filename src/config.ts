@@ -7,6 +7,7 @@ export const Config = t.strict({
   GITHUB_WORKSPACE: t.string,
   INPUT_FILE_PATH: t.string,
   GITHUB_ACTION: t.string,
+  INPUT_SPECTRAL_RULESET: t.string,
 });
 
 export type Config = t.TypeOf<typeof Config>;
