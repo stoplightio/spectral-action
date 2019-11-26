@@ -6,7 +6,7 @@ import { Config } from './config';
 import { runSpectral, createSpectral } from './spectral';
 import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
 
-import { error, info } from '@actions/core';
+import { error, info, setFailed } from '@actions/core';
 import * as IOEither from 'fp-ts/lib/IOEither';
 import * as IO from 'fp-ts/lib/IO';
 import * as TaskEither from 'fp-ts/lib/TaskEither';
@@ -102,7 +102,10 @@ const program = pipe(
                 annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
               )
             ),
-            TaskEither.orElse(e => updateGithubCheck(octokit, GITHUB_ACTION, check, event, [], 'failure', e.message))
+            TaskEither.orElse(e => {
+              setFailed(e.message);
+              return updateGithubCheck(octokit, GITHUB_ACTION, check, event, [], 'failure', e.message);
+            })
           )
         )
       )
