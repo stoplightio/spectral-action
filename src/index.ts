@@ -69,6 +69,10 @@ const readFilesToAnalyze = (path: string) => {
 
   return pipe(
     TE.tryCatch(() => glob(path), E.toError),
+    TE.map(fileList => {
+      info(`Files to check: ${fileList.join(',')}`);
+      return fileList;
+    }),
     TE.chain(fileList =>
       pipe(
         traverseTask(fileList, file =>

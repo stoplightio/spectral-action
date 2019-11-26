@@ -19,7 +19,7 @@
         "GITHUB_SHA": "",
         "GITHUB_WORKSPACE": "",
         "GITHUB_ACTION": "",
-        "INPUT_FILE_GLOB": "test.oas.json"
+        "INPUT_FILE_GLOB": "./**/*.json"
       }
     }
   ]
