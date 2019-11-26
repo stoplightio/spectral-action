@@ -1,7 +1,6 @@
 import { GitHub } from '@actions/github';
-import * as TaskEither from 'fp-ts/lib/TaskEither';
-import * as IOEither from 'fp-ts/lib/IOEither';
-import * as Either from 'fp-ts/lib/Either';
+import * as TE from 'fp-ts/lib/TaskEither';
+import * as E from 'fp-ts/lib/Either';
 import { pipe } from 'fp-ts/lib/pipeable';
 import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
 
@@ -14,8 +13,7 @@ type Event = {
   };
 };
 
-export const createOctokitInstance = (token: string) =>
-  TaskEither.fromIOEither(IOEither.tryCatch(() => new GitHub(token), Either.toError));
+export const createOctokitInstance = (token: string) => TE.fromEither(E.tryCatch(() => new GitHub(token), E.toError));
 
 export const createGithubCheck = (
   octokit: GitHub,
@@ -23,7 +21,7 @@ export const createGithubCheck = (
   name: string,
   head_sha: string
 ) =>
-  TaskEither.tryCatch(
+  TE.tryCatch(
     () =>
       octokit.checks.create({
         owner: event.owner,
@@ -31,13 +29,13 @@ export const createGithubCheck = (
         name,
         head_sha,
       }),
-    Either.toError
+    E.toError
   );
 
 export const getRepositoryInfoFromEvent = (eventPath: string) =>
   pipe(
-    TaskEither.fromIOEither(IOEither.tryCatch<Error, Event>(() => require(eventPath), Either.toError)),
-    TaskEither.map(event => {
+    TE.fromEither(E.tryCatch<Error, Event>(() => require(eventPath), E.toError)),
+    TE.map(event => {
       const { repository } = event;
       const {
         owner: { login: owner },
@@ -56,7 +54,7 @@ export const updateGithubCheck = (
   conclusion: ChecksUpdateParams['conclusion'],
   message?: string
 ) =>
-  TaskEither.tryCatch(
+  TE.tryCatch(
     () =>
       octokit.checks.update({
         check_run_id: check.data.id,
@@ -76,5 +74,5 @@ export const updateGithubCheck = (
           annotations,
         },
       }),
-    Either.toError
+    E.toError
   );
