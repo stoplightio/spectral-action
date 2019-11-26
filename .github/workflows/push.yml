@@ -1,5 +1,5 @@
 on: push
-name: Build Pipeline
+name: Spectral Link
 jobs:
   spectralChecks:
     name: Spectral checks
@@ -11,3 +11,4 @@ jobs:
         with:
           file_path: test.oas.json
           repo_token: ${{ secrets.GITHUB_TOKEN }}
+          spectral_ruleset: 'spectral:oas'
