@@ -7,6 +7,8 @@ import {
   isJSONSchemaDraft7,
   isJSONSchemaDraft2019_09,
   isJSONSchemaLoose,
+  isOpenApiv2,
+  isOpenApiv3,
 } from '@stoplight/spectral';
 
 import { tryCatch } from 'fp-ts/lib/TaskEither';
@@ -15,6 +17,8 @@ import { toError } from 'fp-ts/lib/Either';
 export const createSpectral = () => {
   return tryCatch(async () => {
     const spectral = new Spectral({ resolver: httpAndFileResolver });
+    spectral.registerFormat('oas2', isOpenApiv2);
+    spectral.registerFormat('oas3', isOpenApiv3);
     spectral.registerFormat('json-schema', isJSONSchema);
     spectral.registerFormat('json-schema-loose', isJSONSchemaLoose);
     spectral.registerFormat('json-schema-draft4', isJSONSchemaDraft4);
