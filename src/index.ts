@@ -15,6 +15,8 @@ import { failure } from 'io-ts/lib/PathReporter';
 import { pipe } from 'fp-ts/lib/pipeable';
 import { ChecksUpdateParamsOutputAnnotations } from '@octokit/rest';
 
+const CHECK_NAME = 'Lint';
+
 const createSpectralAnnotations = (path: string, ruleset: string, parsed: string) =>
   pipe(
     createSpectral(ruleset),
@@ -47,7 +49,7 @@ const createSpectralAnnotations = (path: string, ruleset: string, parsed: string
   );
 
 const readFileToAnalyze = (path: string) =>
-  pipe(TaskEither.tryCatch(() => fs.readFile(path, { encoding: 'utf8' }), Either.toError));
+  TaskEither.tryCatch(() => fs.readFile(path, { encoding: 'utf8' }), Either.toError);
 
 const getEnv = IO.of(process.env);
 
@@ -65,15 +67,7 @@ const createConfigFromEnv = pipe(
 const program = pipe(
   TaskEither.fromIOEither(createConfigFromEnv),
   TaskEither.chain(
-    ({
-      GITHUB_EVENT_PATH,
-      INPUT_REPO_TOKEN,
-      GITHUB_SHA,
-      GITHUB_WORKSPACE,
-      GITHUB_ACTION,
-      INPUT_FILE_PATH,
-      INPUT_SPECTRAL_RULESET,
-    }) =>
+    ({ GITHUB_EVENT_PATH, INPUT_REPO_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, INPUT_FILE_PATH, INPUT_SPECTRAL_RULESET }) =>
       pipe(
         getRepositoryInfoFromEvent(GITHUB_EVENT_PATH),
         TaskEither.chain(event =>
@@ -84,7 +78,7 @@ const program = pipe(
         ),
         TaskEither.chain(({ octokit, event }) =>
           pipe(
-            createGithubCheck(octokit, event, GITHUB_ACTION, GITHUB_SHA),
+            createGithubCheck(octokit, event, CHECK_NAME, GITHUB_SHA),
             TaskEither.map(check => ({ octokit, event, check }))
           )
         ),
@@ -95,7 +89,7 @@ const program = pipe(
             TaskEither.chain(annotations =>
               updateGithubCheck(
                 octokit,
-                GITHUB_ACTION,
+                CHECK_NAME,
                 check,
                 event,
                 annotations,
@@ -104,7 +98,7 @@ const program = pipe(
             ),
             TaskEither.orElse(e => {
               setFailed(e.message);
-              return updateGithubCheck(octokit, GITHUB_ACTION, check, event, [], 'failure', e.message);
+              return updateGithubCheck(octokit, CHECK_NAME, check, event, [], 'failure', e.message);
             })
           )
         )
