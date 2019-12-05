@@ -148,10 +148,10 @@
     tslib "^1.10.0"
     urijs "~1.19.1"
 
-"@stoplight/json@^3.1.1", "@stoplight/json@^3.1.2", "@stoplight/json@^3.2.1":
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/@stoplight/json/-/json-3.2.1.tgz#cbc8080f4a55744beb89668d058e48ba52da141b"
-  integrity sha512-RnXApQlP6GEUHIK8JRianStXTc4dHARpNP8VVGL/BbctTTlA3BO+Z1eILu35JdqvMG5sw6Og3TkQyQ85w6sSoA==
+"@stoplight/json@^3.1.1", "@stoplight/json@^3.1.2", "@stoplight/json@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/@stoplight/json/-/json-3.3.0.tgz#25d35daf0f189039d17fa1bbf6b2bd4da157a2e6"
+  integrity sha512-lseHw4Tr7SpmfumNdNSsxn/KlrTFZ2EyyVDUXCn10CVDzHYPfVIngVeYPbLc8c5RRvhow6S0zmBK0m9rXPFZiQ==
   dependencies:
     "@stoplight/types" "^11.1.1"
     jsonc-parser "~2.2.0"
@@ -1090,12 +1090,7 @@ lodash.uniq@^4.5.0:
   resolved "https://registry.yarnpkg.com/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
   integrity sha1-0CJTc662Uq3BvILklFM5qEJ1R3M=
 
-lodash@>=4.17.5:
-  version "4.17.14"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.14.tgz#9ce487ae66c96254fe20b599f21b6816028078ba"
-  integrity sha512-mmKYbW3GLuJeX+iGP+Y7Gp1AiGHGbXHCOh/jZmrawMmsE7MS4znI3RL2FsjbqOyMayHInjOeykW7PEajUk1/xw==
-
-lodash@^4.17.15:
+lodash@>=4.17.5, lodash@^4.17.15:
   version "4.17.15"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
   integrity sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==
