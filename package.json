@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@actions/core": "^1.2.0",
-    "@actions/github": "^1.1.0",
+    "@actions/github": "^2.1.0",
     "@stoplight/json": "^3.2.1",
     "@stoplight/spectral": "^4.2.0",
     "fast-glob": "^3.1.0",
