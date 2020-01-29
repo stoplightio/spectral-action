@@ -735,10 +735,10 @@ find-up@^4.0.0, find-up@^4.1.0:
     locate-path "^5.0.0"
     path-exists "^4.0.0"
 
-fp-ts@^2.2.0:
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.2.0.tgz#7a442c6389e9b8424a5deb55eb099a8840072f4a"
-  integrity sha512-muJL9NOYluuoRezrvOyQvLAHIXrYg7u/Tc6cu4PP/Ed4TJKrm6BVSX8H1goT/4nhgP/yQ+Z4Xjjt4ijeKFX4Ng==
+fp-ts@^2.4.3:
+  version "2.4.3"
+  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.4.3.tgz#6a8be95df8be34caf7a4243802d85c31d65ff1ba"
+  integrity sha512-R/QwlxnRlboZIObqKjOUf8rkXz36uSWfJO2M5o2cqf7UiHoHlNMojr/PiUyj8j3l1fOP62dR6nsKvFaRSJBIaQ==
 
 fs.realpath@^1.0.0:
   version "1.0.0"
