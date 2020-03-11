@@ -23,7 +23,7 @@
     "@octokit/rest": "^16.35.0",
     "@types/lodash": "^4.14.149",
     "@types/node": "^13.7.7",
-    "@types/urijs": "^1.19.6",
+    "@types/urijs": "^1.19.7",
     "husky": "^4.2.3",
     "prettier": "^1.19.1",
     "pretty-quick": "^2.0.1",
