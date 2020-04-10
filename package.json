@@ -24,7 +24,7 @@
     "@types/lodash": "^4.14.149",
     "@types/node": "^13.7.7",
     "@types/urijs": "^1.19.6",
-    "husky": "^4.2.3",
+    "husky": "^4.2.5",
     "prettier": "^1.19.1",
     "pretty-quick": "^2.0.1",
     "typescript": "^3.8.3"
