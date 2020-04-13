@@ -20,7 +20,7 @@
   "devDependencies": {
     "@octokit/graphql": "^4.3.1",
     "@octokit/request": "^5.3.2",
-    "@octokit/rest": "^16.35.0",
+    "@octokit/rest": "^17.2.1",
     "@types/lodash": "^4.14.149",
     "@types/node": "^13.7.7",
     "@types/urijs": "^1.19.6",
