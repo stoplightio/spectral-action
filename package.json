@@ -32,7 +32,7 @@
   "dependencies": {
     "@actions/core": "^1.2.3",
     "@actions/github": "^2.1.1",
-    "@stoplight/json": "^3.5.1",
+    "@stoplight/json": "^3.7.0",
     "@stoplight/spectral": "^5.1.0",
     "fast-glob": "^3.2.2",
     "fp-ts": "^2.5.3",
