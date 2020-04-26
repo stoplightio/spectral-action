@@ -4,7 +4,7 @@ description: Lint your files with Spectral
 inputs:
   file_glob:
     required: true
-    description: The file path to lint with Spectral
+    description: The pattern describing the file paths to lint with Spectral
     default: '*.oas.{json,yml,yaml}'
   spectral_ruleset:
     required: false
