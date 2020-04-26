@@ -1,3 +1,5 @@
+import { getRuleset } from '@stoplight/spectral/dist/cli/services/linter/utils';
+import { isRuleEnabled } from '@stoplight/spectral/dist/runner';
 import { httpAndFileResolver } from '@stoplight/spectral/dist/resolvers/http-and-file';
 import {
   Spectral,
@@ -14,7 +16,17 @@ import {
 import { tryCatch } from 'fp-ts/lib/TaskEither';
 import { toError } from 'fp-ts/lib/Either';
 
-export const createSpectral = (ruleset: string) => {
+const normalizeRulesetPath = (rulesetPath: string): [string] | undefined => {
+  if (rulesetPath.length === 0) {
+    info(`Loading built-in rulesets...`);
+    return undefined;
+  }
+
+  info(`Loading ruleset '${rulesetPath}'...`);
+  return [rulesetPath];
+};
+
+export const createSpectral = (rulesetPath: string) => {
   return tryCatch(async () => {
     const spectral = new Spectral({ resolver: httpAndFileResolver });
     spectral.registerFormat('oas2', isOpenApiv2);
@@ -25,9 +37,24 @@ export const createSpectral = (ruleset: string) => {
     spectral.registerFormat('json-schema-draft6', isJSONSchemaDraft6);
     spectral.registerFormat('json-schema-draft7', isJSONSchemaDraft7);
     spectral.registerFormat('json-schema-2019-09', isJSONSchemaDraft2019_09);
-    await spectral.loadRuleset(ruleset);
+
+    const normRuleSetPath = normalizeRulesetPath(rulesetPath);
+    const ruleset = await getRuleset(normRuleSetPath);
+    spectral.setRuleset(ruleset);
+
     return spectral;
   }, toError);
 };
 
-export const runSpectral = (spectral: Spectral, parsed: string) => tryCatch(() => spectral.run(parsed), toError);
+export type fileWithContent = { path: string; content: string };
+
+export const runSpectral = (spectral: Spectral, fileDescription: fileWithContent) => {
+  return tryCatch(
+    () =>
+      spectral.run(fileDescription.content, {
+        ignoreUnknownFormat: false,
+        resolve: { documentUri: fileDescription.path },
+      }),
+    toError
+  );
+};

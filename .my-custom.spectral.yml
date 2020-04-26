@@ -1,0 +1,15 @@
+extends: spectral:oas
+
+except:
+  'fixtures/test.oas.yml#/paths/~1todos/get':
+    - operation-description
+
+  'fixtures/non_existent.yml#':
+    - oas3-api-servers
+    - openapi-tags
+
+  'fixtures/non_existent.yml#/info':
+    - info-contact
+
+  'fixtures/non_existent.yml#/paths/~1todos/get':
+    - operation-description

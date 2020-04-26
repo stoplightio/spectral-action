@@ -6,7 +6,7 @@ import { promises as fs } from 'fs';
 import { array } from 'fp-ts/lib/Array';
 import { flatten } from 'lodash';
 import { Config } from './config';
-import { runSpectral, createSpectral } from './spectral';
+import { runSpectral, createSpectral, fileWithContent } from './spectral';
 import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
 import glob from 'fast-glob';
 import { error, info, setFailed } from '@actions/core';
@@ -23,7 +23,6 @@ import * as path from 'path';
 
 const CHECK_NAME = 'Lint';
 const traverseTask = array.traverse(T.task);
-type fileWithContent = { file: string; content: string };
 
 const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], basePath: string) =>
   pipe(
@@ -31,8 +30,11 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], b
     TE.chain(spectral => {
       const spectralRuns = parsed.map(v =>
         pipe(
-          runSpectral(spectral, v.content),
-          TE.map(rules => ({ path: v.file, rules }))
+          runSpectral(spectral, v),
+          TE.map(results => {
+
+            return { path: v.path, results };
+          })
         )
       );
       return array.sequence(TE.taskEither)(spectralRuns);
@@ -40,7 +42,7 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], b
     TE.map(results =>
       flatten(
         results.map(validationResult => {
-          return validationResult.rules.map<ChecksUpdateParamsOutputAnnotations>(vl => {
+          return validationResult.results.map<ChecksUpdateParamsOutputAnnotations>(vl => {
             const annotation_level: ChecksUpdateParamsOutputAnnotations['annotation_level'] =
               vl.severity === DiagnosticSeverity.Error
                 ? 'failure'
@@ -77,10 +79,10 @@ const readFilesToAnalyze = (path: string) => {
     }),
     TE.chain(fileList =>
       pipe(
-        traverseTask(fileList, file =>
+        traverseTask(fileList, path =>
           pipe(
-            readFile(file),
-            TE.map(content => ({ file, content }))
+            readFile(path),
+            TE.map<string, fileWithContent>(content => ({ path, content }))
           )
         ),
         T.map(e => {
