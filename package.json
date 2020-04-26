@@ -19,9 +19,6 @@
   },
   "homepage": "https://github.com/XVincentX/spectral-action#readme",
   "devDependencies": {
-    "@octokit/graphql": "^4.3.1",
-    "@octokit/request": "^5.3.2",
-    "@octokit/rest": "^16.35.0",
     "@types/lodash": "^4.14.149",
     "@types/node": "^13.7.7",
     "@types/urijs": "^1.19.6",
@@ -33,6 +30,9 @@
   "dependencies": {
     "@actions/core": "^1.2.3",
     "@actions/github": "^2.1.1",
+    "@octokit/graphql": "^4.3.1",
+    "@octokit/request": "^5.3.2",
+    "@octokit/rest": "^16.35.0",
     "@stoplight/json": "^3.5.1",
     "@stoplight/spectral": "^5.1.0",
     "fast-glob": "^3.2.2",
