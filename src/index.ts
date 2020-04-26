@@ -6,7 +6,7 @@ import { promises as fs } from 'fs';
 import { array } from 'fp-ts/lib/Array';
 import { flatten } from 'lodash';
 import { Config } from './config';
-import { runSpectral, createSpectral, fileWithContent } from './spectral';
+import { runSpectral, createSpectral, fileWithContent, pluralizer } from './spectral';
 import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
 import glob from 'fast-glob';
 import { error, info, setFailed } from '@actions/core';
@@ -32,6 +32,13 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], b
         pipe(
           runSpectral(spectral, v),
           TE.map(results => {
+            info(`Done linting '${v.path}'`);
+
+            if (results.length === 0) {
+              info(' No issue detected');
+            } else {
+              info(` /!\\ ${pluralizer(results.length, 'issue')} detected`);
+            }
 
             return { path: v.path, results };
           })
@@ -68,13 +75,15 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], b
     )
   );
 
-const readFilesToAnalyze = (path: string) => {
+const readFilesToAnalyze = (pattern: string, workingDir: string) => {
+  const path = join(workingDir, pattern);
+
   const readFile = (file: string) => TE.tryCatch(() => fs.readFile(file, { encoding: 'utf8' }), E.toError);
 
   return pipe(
     TE.tryCatch(() => glob(path), E.toError),
     TE.map(fileList => {
-      info(`Files to check: ${fileList.join(',')}`);
+      info(`Using glob '${pattern}' under '${workingDir}', found ${pluralizer(fileList.length, 'file')} to lint`);
       return fileList;
     }),
     TE.chain(fileList =>
@@ -128,7 +137,7 @@ const program = pipe(
         ),
         TE.chain(({ octokit, event, check }) =>
           pipe(
-            readFilesToAnalyze(join(GITHUB_WORKSPACE, INPUT_FILE_GLOB)),
+            readFilesToAnalyze(INPUT_FILE_GLOB, GITHUB_WORKSPACE),
             TE.chain(fileContents => createSpectralAnnotations(INPUT_SPECTRAL_RULESET, fileContents, GITHUB_WORKSPACE)),
             TE.chain(annotations =>
               updateGithubCheck(
@@ -155,7 +164,7 @@ program().then(result =>
     result,
     E.fold(
       e => error(e.message),
-      () => info('Worked fine')
+      () => info('Analysis is complete')
     )
   )
 );
