@@ -28,6 +28,7 @@ export const createGithubCheck = (
         repo: event.repo,
         name,
         head_sha,
+        status: 'in_progress',
       }),
     E.toError
   );
