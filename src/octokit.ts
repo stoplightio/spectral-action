@@ -72,6 +72,11 @@ export const updateGithubCheck = (
             : conclusion === 'success'
             ? 'Lint completed successfully'
             : 'Lint completed with some errors',
+
+          // TODO: Split calls when annotations.length > 50
+          // From https://octokit.github.io/rest.js/v17#checks-update
+          // => "The Checks API limits the number of annotations to a maximum of 50 per API request.
+          // To create more than 50 annotations, you have to make multiple requests to the Update a check run endpoint."
           annotations,
         },
       }),
