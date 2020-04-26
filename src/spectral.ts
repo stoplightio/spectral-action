@@ -1,5 +1,4 @@
 import { getRuleset } from '@stoplight/spectral/dist/cli/services/linter/utils';
-import { pluralize } from '@stoplight/spectral/dist/formatters/utils';
 import { isRuleEnabled } from '@stoplight/spectral/dist/runner';
 import { httpAndFileResolver } from '@stoplight/spectral/dist/resolvers/http-and-file';
 import {
@@ -20,10 +19,7 @@ import * as E from 'fp-ts/lib/Either';
 import { pipe } from 'fp-ts/lib/pipeable';
 
 import { info } from '@actions/core';
-
-export const pluralizer = (howMany: number, word: string) => {
-  return `${howMany} ${pluralize(word, howMany)}`;
-};
+import { pluralizer } from './utils';
 
 const evaluateNumberOfExceptions = (exceptions: Record<string, string[]>) => {
   const reduced = Object.keys(exceptions).reduce(

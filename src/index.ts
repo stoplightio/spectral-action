@@ -6,7 +6,8 @@ import { promises as fs } from 'fs';
 import { array } from 'fp-ts/lib/Array';
 import { flatten } from 'lodash';
 import { Config } from './config';
-import { runSpectral, createSpectral, fileWithContent, pluralizer } from './spectral';
+import { runSpectral, createSpectral, fileWithContent } from './spectral';
+import { pluralizer } from './utils';
 import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
 import glob from 'fast-glob';
 import { error, info, setFailed } from '@actions/core';
@@ -140,13 +141,23 @@ const program = pipe(
             readFilesToAnalyze(INPUT_FILE_GLOB, GITHUB_WORKSPACE),
             TE.chain(fileContents => createSpectralAnnotations(INPUT_SPECTRAL_RULESET, fileContents, GITHUB_WORKSPACE)),
             TE.chain(annotations =>
-              updateGithubCheck(
-                octokit,
-                CHECK_NAME,
-                check,
-                event,
-                annotations,
-                annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
+              pipe(
+                updateGithubCheck(
+                  octokit,
+                  CHECK_NAME,
+                  check,
+                  event,
+                  annotations,
+                  annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
+                ),
+                TE.map(checkResponse => {
+                  const fatalErrors = annotations.filter(a => a.annotation_level === 'failure');
+                  if (fatalErrors.length > 0) {
+                    setFailed(`${pluralizer(fatalErrors.length, 'fatal issue')} detected. Failing the process.`);
+                  }
+
+                  return checkResponse;
+                })
               )
             ),
             TE.orElse(e => {
