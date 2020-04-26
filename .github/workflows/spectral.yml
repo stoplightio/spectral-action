@@ -12,5 +12,4 @@ jobs:
         uses: ./
         with:
           file_glob: ./**/*.yml
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
           spectral_ruleset: 'spectral:oas'

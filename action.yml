@@ -12,7 +12,11 @@ inputs:
     default: 'spectral:oas'
   repo_token:
     required: true
-    description: Ruleset file to load in Spectral
+    description: |
+      The GitHub App installation access token.
+
+      [Learn more about `GITHUB_TOKEN`](https://help.github.com/en/actions/configuring-and-managing-workflows/authenticating-with-the-github_token#about-the-github_token-secret)
+    default: ${{ github.token }}
 runs:
   using: docker
   image: Dockerfile
