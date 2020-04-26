@@ -1,23 +1,34 @@
-FROM node:13 as builder
+FROM node:12 as builder
 
-COPY package* ./
+COPY package.json yarn.lock ./
 RUN yarn
 
 COPY src ./src
 COPY tsconfig.json tsconfig.json
 
-RUN ./node_modules/.bin/tsc || true
+RUN yarn
+RUN yarn build || true
 
-FROM node:13 as installer
+###############################################################
+
+FROM node:12 as dependencies
 
 ENV NODE_ENV production
-COPY package.json package.json
+COPY package.json yarn.lock ./
 RUN yarn --production
 
-FROM node:13-alpine as runtime
+RUN curl -sfL https://install.goreleaser.com/github.com/tj/node-prune.sh | bash
+RUN ./bin/node-prune
+
+###############################################################
+
+FROM node:12-alpine as runtime
+
 ENV NODE_ENV production
+
 COPY package.json /action/package.json
+
 COPY --from=builder dist /action/dist
-COPY --from=installer node_modules /action/node_modules
+COPY --from=dependencies node_modules /action/node_modules
 
 ENTRYPOINT ["node", "/action/dist/index.js"]
