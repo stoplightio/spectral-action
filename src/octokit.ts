@@ -5,6 +5,7 @@ import { pipe } from 'fp-ts/lib/pipeable';
 import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
 
 type Event = {
+  after: string;
   repository: {
     name: string;
     owner: {
@@ -15,34 +16,35 @@ type Event = {
 
 export const createOctokitInstance = (token: string) => TE.fromEither(E.tryCatch(() => new GitHub(token), E.toError));
 
-export const createGithubCheck = (
-  octokit: GitHub,
-  event: { owner: string; repo: string },
-  name: string,
-  head_sha: string
-) =>
+export const createGithubCheck = (octokit: GitHub, event: IRepositoryInfo, name: string) =>
   TE.tryCatch(
     () =>
       octokit.checks.create({
         owner: event.owner,
         repo: event.repo,
         name,
-        head_sha,
+        head_sha: event.sha,
         status: 'in_progress',
       }),
     E.toError
   );
 
-export const getRepositoryInfoFromEvent = (eventPath: string) =>
+export interface IRepositoryInfo {
+  owner: string;
+  repo: string;
+  sha: string;
+}
+
+export const getRepositoryInfoFromEvent = (eventPath: string): TE.TaskEither<Error, IRepositoryInfo> =>
   pipe(
     TE.fromEither(E.tryCatch<Error, Event>(() => require(eventPath), E.toError)),
     TE.map(event => {
-      const { repository } = event;
+      const { repository, after } = event;
       const {
         owner: { login: owner },
       } = repository;
       const { name: repo } = repository;
-      return { owner, repo };
+      return { owner, repo, sha: after };
     })
   );
 
@@ -50,7 +52,7 @@ export const updateGithubCheck = (
   octokit: GitHub,
   actionName: string,
   check: Response<ChecksCreateResponse>,
-  event: { owner: string; repo: string },
+  event: IRepositoryInfo,
   annotations: ChecksUpdateParamsOutputAnnotations[],
   conclusion: ChecksUpdateParams['conclusion'],
   message?: string
