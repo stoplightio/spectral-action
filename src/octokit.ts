@@ -32,10 +32,14 @@ export const createGithubCheck = (octokit: GitHub, event: IRepositoryInfo, name:
 export interface IRepositoryInfo {
   owner: string;
   repo: string;
+  eventName: string;
   sha: string;
 }
 
-export const getRepositoryInfoFromEvent = (eventPath: string): TE.TaskEither<Error, IRepositoryInfo> =>
+export const getRepositoryInfoFromEvent = (
+  eventPath: string,
+  eventName: string
+): TE.TaskEither<Error, IRepositoryInfo> =>
   pipe(
     TE.fromEither(E.tryCatch<Error, Event>(() => require(eventPath), E.toError)),
     TE.map(event => {
@@ -44,13 +48,12 @@ export const getRepositoryInfoFromEvent = (eventPath: string): TE.TaskEither<Err
         owner: { login: owner },
       } = repository;
       const { name: repo } = repository;
-      return { owner, repo, sha: after };
+      return { owner, repo, eventName, sha: after };
     })
   );
 
 export const updateGithubCheck = (
   octokit: GitHub,
-  actionName: string,
   check: Response<ChecksCreateResponse>,
   event: IRepositoryInfo,
   annotations: ChecksUpdateParamsOutputAnnotations[],
@@ -62,13 +65,13 @@ export const updateGithubCheck = (
       octokit.checks.update({
         check_run_id: check.data.id,
         owner: event.owner,
-        name: actionName,
+        name: check.data.name,
         repo: event.repo,
         status: 'completed',
         conclusion,
         completed_at: new Date().toISOString(),
         output: {
-          title: actionName,
+          title: check.data.name,
           summary: message
             ? message
             : conclusion === 'success'

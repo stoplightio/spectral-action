@@ -20,6 +20,11 @@ inputs:
 
       [Learn more about `GITHUB_TOKEN`](https://help.github.com/en/actions/configuring-and-managing-workflows/authenticating-with-the-github_token#about-the-github_token-secret)
     default: ${{ github.token }}
+  event_name:
+    required: true
+    description: |
+      The name of the event that triggered the workflow
+    default: ${{ github.event_name }}
 runs:
   using: docker
   image: Dockerfile
