@@ -4,15 +4,27 @@ description: Lint your files with Spectral
 inputs:
   file_glob:
     required: true
-    description: The file path to lint with Spectral
+    description: The pattern describing the file paths to lint with Spectral
     default: '*.oas.{json,yml,yaml}'
   spectral_ruleset:
-    required: true
-    description: Ruleset file to load in Spectral
-    default: 'spectral:oas'
+    required: false
+    description: |
+      Custom ruleset to load in Spectral.
+
+      When unspecified, will try to load the default `.spectral.yaml` ruleset if it exists.
+      Otherwise, the default built-in Spectral rulesets will be loaded.
   repo_token:
     required: true
-    description: Ruleset file to load in Spectral
+    description: |
+      The GitHub App installation access token.
+
+      [Learn more about `GITHUB_TOKEN`](https://help.github.com/en/actions/configuring-and-managing-workflows/authenticating-with-the-github_token#about-the-github_token-secret)
+    default: ${{ github.token }}
+  event_name:
+    required: true
+    description: |
+      The name of the event that triggered the workflow
+    default: ${{ github.event_name }}
 runs:
   using: docker
   image: Dockerfile

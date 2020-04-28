@@ -6,7 +6,8 @@ import { promises as fs } from 'fs';
 import { array } from 'fp-ts/lib/Array';
 import { flatten } from 'lodash';
 import { Config } from './config';
-import { runSpectral, createSpectral } from './spectral';
+import { runSpectral, createSpectral, fileWithContent } from './spectral';
+import { pluralizer } from './utils';
 import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
 import glob from 'fast-glob';
 import { error, info, setFailed } from '@actions/core';
@@ -23,7 +24,6 @@ import * as path from 'path';
 
 const CHECK_NAME = 'Lint';
 const traverseTask = array.traverse(T.task);
-type fileWithContent = { file: string; content: string };
 
 const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], basePath: string) =>
   pipe(
@@ -31,8 +31,18 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], b
     TE.chain(spectral => {
       const spectralRuns = parsed.map(v =>
         pipe(
-          runSpectral(spectral, v.content),
-          TE.map(rules => ({ path: v.file, rules }))
+          runSpectral(spectral, v),
+          TE.map(results => {
+            info(`Done linting '${v.path}'`);
+
+            if (results.length === 0) {
+              info(' No issue detected');
+            } else {
+              info(` /!\\ ${pluralizer(results.length, 'issue')} detected`);
+            }
+
+            return { path: v.path, results };
+          })
         )
       );
       return array.sequence(TE.taskEither)(spectralRuns);
@@ -40,7 +50,7 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], b
     TE.map(results =>
       flatten(
         results.map(validationResult => {
-          return validationResult.rules.map<ChecksUpdateParamsOutputAnnotations>(vl => {
+          return validationResult.results.map<ChecksUpdateParamsOutputAnnotations>(vl => {
             const annotation_level: ChecksUpdateParamsOutputAnnotations['annotation_level'] =
               vl.severity === DiagnosticSeverity.Error
                 ? 'failure'
@@ -66,21 +76,23 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], b
     )
   );
 
-const readFilesToAnalyze = (path: string) => {
+const readFilesToAnalyze = (pattern: string, workingDir: string) => {
+  const path = join(workingDir, pattern);
+
   const readFile = (file: string) => TE.tryCatch(() => fs.readFile(file, { encoding: 'utf8' }), E.toError);
 
   return pipe(
     TE.tryCatch(() => glob(path), E.toError),
     TE.map(fileList => {
-      info(`Files to check: ${fileList.join(',')}`);
+      info(`Using glob '${pattern}' under '${workingDir}', found ${pluralizer(fileList.length, 'file')} to lint`);
       return fileList;
     }),
     TE.chain(fileList =>
       pipe(
-        traverseTask(fileList, file =>
+        traverseTask(fileList, path =>
           pipe(
-            readFile(file),
-            TE.map(content => ({ file, content }))
+            readFile(path),
+            TE.map<string, fileWithContent>(content => ({ path, content }))
           )
         ),
         T.map(e => {
@@ -109,9 +121,16 @@ const createConfigFromEnv = pipe(
 const program = pipe(
   TE.fromIOEither(createConfigFromEnv),
   TE.chain(
-    ({ GITHUB_EVENT_PATH, INPUT_REPO_TOKEN, GITHUB_SHA, GITHUB_WORKSPACE, INPUT_FILE_GLOB, INPUT_SPECTRAL_RULESET }) =>
+    ({
+      INPUT_EVENT_NAME,
+      GITHUB_EVENT_PATH,
+      INPUT_REPO_TOKEN,
+      GITHUB_WORKSPACE,
+      INPUT_FILE_GLOB,
+      INPUT_SPECTRAL_RULESET,
+    }) =>
       pipe(
-        getRepositoryInfoFromEvent(GITHUB_EVENT_PATH),
+        getRepositoryInfoFromEvent(GITHUB_EVENT_PATH, INPUT_EVENT_NAME),
         TE.chain(event =>
           pipe(
             createOctokitInstance(INPUT_REPO_TOKEN),
@@ -120,27 +139,43 @@ const program = pipe(
         ),
         TE.chain(({ octokit, event }) =>
           pipe(
-            createGithubCheck(octokit, event, CHECK_NAME, GITHUB_SHA),
+            createGithubCheck(octokit, event, `${CHECK_NAME} (${event.eventName})`),
             TE.map(check => ({ octokit, event, check }))
           )
         ),
         TE.chain(({ octokit, event, check }) =>
           pipe(
-            readFilesToAnalyze(join(GITHUB_WORKSPACE, INPUT_FILE_GLOB)),
+            readFilesToAnalyze(INPUT_FILE_GLOB, GITHUB_WORKSPACE),
             TE.chain(fileContents => createSpectralAnnotations(INPUT_SPECTRAL_RULESET, fileContents, GITHUB_WORKSPACE)),
             TE.chain(annotations =>
-              updateGithubCheck(
-                octokit,
-                CHECK_NAME,
-                check,
-                event,
-                annotations,
-                annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
+              pipe(
+                updateGithubCheck(
+                  octokit,
+                  check,
+                  event,
+                  annotations,
+                  annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
+                ),
+                TE.map(checkResponse => {
+                  info(
+                    `Check run '${checkResponse.data.name}' concluded with '${checkResponse.data.conclusion}' (${checkResponse.data.html_url})`
+                  );
+                  info(
+                    `Commit ${event.sha} has been annotated (https://github.com/${event.owner}/${event.repo}/commit/${event.sha})`
+                  );
+
+                  const fatalErrors = annotations.filter(a => a.annotation_level === 'failure');
+                  if (fatalErrors.length > 0) {
+                    setFailed(`${pluralizer(fatalErrors.length, 'fatal issue')} detected. Failing the process.`);
+                  }
+
+                  return checkResponse;
+                })
               )
             ),
             TE.orElse(e => {
               setFailed(e.message);
-              return updateGithubCheck(octokit, CHECK_NAME, check, event, [], 'failure', e.message);
+              return updateGithubCheck(octokit, check, event, [], 'failure', e.message);
             })
           )
         )
@@ -153,7 +188,7 @@ program().then(result =>
     result,
     E.fold(
       e => error(e.message),
-      () => info('Worked fine')
+      () => info('Analysis is complete')
     )
   )
 );

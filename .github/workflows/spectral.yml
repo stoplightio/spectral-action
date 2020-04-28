@@ -7,10 +7,9 @@ jobs:
     name: Spectral checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - name: Spectral checks
         uses: ./
         with:
           file_glob: ./**/*.yml
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          spectral_ruleset: 'spectral:oas'
+          spectral_ruleset: .my-custom.spectral.yml
