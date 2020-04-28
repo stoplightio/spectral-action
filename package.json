@@ -36,7 +36,7 @@
     "@stoplight/json": "^3.5.1",
     "@stoplight/spectral": "^5.3.0",
     "fast-glob": "^3.2.2",
-    "fp-ts": "^2.5.3",
+    "fp-ts": "^2.5.4",
     "io-ts": "^2.1.2",
     "lodash": "^4.17.15",
     "tslib": "^1.11.1"
