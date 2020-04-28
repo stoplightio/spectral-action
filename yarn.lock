@@ -232,27 +232,7 @@
     tslib "^1.10.0"
     urijs "~1.19.1"
 
-"@stoplight/json@^3.1.2":
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/@stoplight/json/-/json-3.2.1.tgz#cbc8080f4a55744beb89668d058e48ba52da141b"
-  integrity sha512-RnXApQlP6GEUHIK8JRianStXTc4dHARpNP8VVGL/BbctTTlA3BO+Z1eILu35JdqvMG5sw6Og3TkQyQ85w6sSoA==
-  dependencies:
-    "@stoplight/types" "^11.1.1"
-    jsonc-parser "~2.2.0"
-    lodash "^4.17.15"
-    safe-stable-stringify "^1.1"
-
-"@stoplight/json@^3.5.1":
-  version "3.5.1"
-  resolved "https://registry.yarnpkg.com/@stoplight/json/-/json-3.5.1.tgz#afc6ffcbe2ada8f9b16680fd7885688cf9beec7e"
-  integrity sha512-O5WUW2yfAvtrqeq60YrbxpTvk87Ti2IeJ5oVa2XNJ2s+IIxx0CM+j316QoOjSGs+twrRpwb3jT9CFPrq7Ghkzg==
-  dependencies:
-    "@stoplight/types" "^11.4.0"
-    jsonc-parser "~2.2.0"
-    lodash "^4.17.15"
-    safe-stable-stringify "^1.1"
-
-"@stoplight/json@^3.6.0":
+"@stoplight/json@^3.1.2", "@stoplight/json@^3.6.0", "@stoplight/json@^3.7.1":
   version "3.7.1"
   resolved "https://registry.yarnpkg.com/@stoplight/json/-/json-3.7.1.tgz#3855478ed3e0baaee6a7627948957ce537e481ad"
   integrity sha512-5VUVZxO7Jg+yoyEPa+ymD+fz5Pij96Nv3ei8FpzkzJwZLqY0ycAe8pBTz1mMf9QDUB+7HZZnCrWGCqGtDLYZZA==
@@ -302,14 +282,7 @@
     tslib "^1.10.0"
     yargs "^15.0.2"
 
-"@stoplight/types@^11.1.1":
-  version "11.3.0"
-  resolved "https://registry.yarnpkg.com/@stoplight/types/-/types-11.3.0.tgz#23d40cbf2c3c85e5612038b5cf0c003f82809318"
-  integrity sha512-m6N4Bv2O2bYJOXdIwtpLtfQY/3zHUgRuHx2D8ERydX8WE40nKoLqh4wN6nvRcSeGwxjhi0Q0KUAZIe9UsYj6fQ==
-  dependencies:
-    "@types/json-schema" "^7.0.3"
-
-"@stoplight/types@^11.2.0", "@stoplight/types@^11.4.0":
+"@stoplight/types@^11.1.1", "@stoplight/types@^11.2.0", "@stoplight/types@^11.4.0":
   version "11.4.0"
   resolved "https://registry.yarnpkg.com/@stoplight/types/-/types-11.4.0.tgz#a2bedbbec37700d3c5a8c7d36c763a61d7a8bce7"
   integrity sha512-kMh1Sv7bA8BdbUaRXsRyi2K8Y5PzPOUWNSjB4qKOi0P6+dLczjlKggEIw9Xzuu1tCgBFdEvNwjnYDey0iqgeZQ==
@@ -1179,12 +1152,7 @@ lodash.uniq@^4.5.0:
   resolved "https://registry.yarnpkg.com/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
   integrity sha1-0CJTc662Uq3BvILklFM5qEJ1R3M=
 
-lodash@>=4.17.5:
-  version "4.17.14"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.14.tgz#9ce487ae66c96254fe20b599f21b6816028078ba"
-  integrity sha512-mmKYbW3GLuJeX+iGP+Y7Gp1AiGHGbXHCOh/jZmrawMmsE7MS4znI3RL2FsjbqOyMayHInjOeykW7PEajUk1/xw==
-
-lodash@^4.17.15:
+lodash@>=4.17.5, lodash@^4.17.15:
   version "4.17.15"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
   integrity sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==
