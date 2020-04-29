@@ -7,7 +7,7 @@ jobs:
     name: Spectral checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@master
       - name: Spectral checks
         uses: ./
         with:
