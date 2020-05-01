@@ -130,49 +130,54 @@ const program = pipe(
       INPUT_SPECTRAL_RULESET,
     }) =>
       pipe(
-        getRepositoryInfoFromEvent(GITHUB_EVENT_PATH, INPUT_EVENT_NAME),
-        TE.chain(event =>
-          pipe(
-            createOctokitInstance(INPUT_REPO_TOKEN),
-            TE.map(octokit => ({ octokit, event }))
-          )
+        pipe(
+          getRepositoryInfoFromEvent(GITHUB_EVENT_PATH, INPUT_EVENT_NAME),
+          TE.map(event => ({ event }))
         ),
-        TE.chain(({ octokit, event }) =>
-          pipe(
-            createGithubCheck(octokit, event, `${CHECK_NAME} (${event.eventName})`),
-            TE.map(check => ({ octokit, event, check }))
-          )
-        ),
-        TE.chain(({ octokit, event, check }) =>
+        TE.chain(({ event }) =>
           pipe(
             readFilesToAnalyze(INPUT_FILE_GLOB, GITHUB_WORKSPACE),
             TE.chain(fileContents => createSpectralAnnotations(INPUT_SPECTRAL_RULESET, fileContents, GITHUB_WORKSPACE)),
-            TE.chain(annotations =>
-              pipe(
-                updateGithubCheck(
-                  octokit,
-                  check,
-                  event,
-                  annotations,
-                  annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
-                ),
-                TE.map(checkResponse => {
-                  info(
-                    `Check run '${checkResponse.data.name}' concluded with '${checkResponse.data.conclusion}' (${checkResponse.data.html_url})`
-                  );
-                  info(
-                    `Commit ${event.sha} has been annotated (https://github.com/${event.owner}/${event.repo}/commit/${event.sha})`
-                  );
-
-                  const fatalErrors = annotations.filter(a => a.annotation_level === 'failure');
-                  if (fatalErrors.length > 0) {
-                    setFailed(`${pluralizer(fatalErrors.length, 'fatal issue')} detected. Failing the process.`);
-                  }
-
-                  return checkResponse;
-                })
-              )
+            TE.map(annotations => ({ event, annotations }))
+          )
+        ),
+        TE.chain(({ event, annotations }) =>
+          pipe(
+            createOctokitInstance(INPUT_REPO_TOKEN),
+            TE.map(octokit => ({ octokit, event, annotations }))
+          )
+        ),
+        TE.chain(({ octokit, event, annotations }) =>
+          pipe(
+            createGithubCheck(octokit, event, `${CHECK_NAME} (${event.eventName})`),
+            TE.map(check => ({ octokit, event, check, annotations }))
+          )
+        ),
+        TE.chain(({ octokit, event, check, annotations }) =>
+          pipe(
+            updateGithubCheck(
+              octokit,
+              check,
+              event,
+              annotations,
+              annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
             ),
+            TE.map(checkResponse => {
+              info(
+                `Check run '${checkResponse.data.name}' concluded with '${checkResponse.data.conclusion}' (${checkResponse.data.html_url})`
+              );
+              info(
+                `Commit ${event.sha} has been annotated (https://github.com/${event.owner}/${event.repo}/commit/${event.sha})`
+              );
+
+              const fatalErrors = annotations.filter(a => a.annotation_level === 'failure');
+              if (fatalErrors.length > 0) {
+                setFailed(`${pluralizer(fatalErrors.length, 'fatal issue')} detected. Failing the process.`);
+              }
+
+              return checkResponse;
+            }),
+
             TE.orElse(e => {
               setFailed(`${e.message}\n${e.stack}`);
               return updateGithubCheck(octokit, check, event, [], 'failure', e.message);
