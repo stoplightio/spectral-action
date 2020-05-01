@@ -3,6 +3,7 @@ import * as TE from 'fp-ts/lib/TaskEither';
 import * as E from 'fp-ts/lib/Either';
 import { pipe } from 'fp-ts/lib/pipeable';
 import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
+import { info } from '@actions/core';
 
 type Event = {
   after: string;
@@ -43,6 +44,7 @@ export const getRepositoryInfoFromEvent = (
   pipe(
     TE.fromEither(E.tryCatch<Error, Event>(() => require(eventPath), E.toError)),
     TE.map(event => {
+      info(`Responding to event '${eventName}'`);
       const { repository, after } = event;
       const {
         owner: { login: owner },
