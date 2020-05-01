@@ -3,7 +3,7 @@ import * as TE from 'fp-ts/lib/TaskEither';
 import * as E from 'fp-ts/lib/Either';
 import { pipe } from 'fp-ts/lib/pipeable';
 import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
-import { info } from '@actions/core';
+import { info, warning } from '@actions/core';
 
 type Event = {
   after: string;
@@ -37,6 +37,18 @@ export interface IRepositoryInfo {
   sha: string;
 }
 
+const extractSha = (eventName: string, event: any): string => {
+  switch (eventName) {
+    case 'pull_request':
+      return event.pull_request.head.sha;
+    case 'push':
+      return event.after;
+    default:
+      warning(event);
+      throw new Error(`Unsupported event '${eventName}'`);
+  }
+};
+
 export const getRepositoryInfoFromEvent = (
   eventPath: string,
   eventName: string
@@ -45,12 +57,16 @@ export const getRepositoryInfoFromEvent = (
     TE.fromEither(E.tryCatch<Error, Event>(() => require(eventPath), E.toError)),
     TE.map(event => {
       info(`Responding to event '${eventName}'`);
-      const { repository, after } = event;
+      const sha = extractSha(eventName, event);
+      info(`Processing commit '${sha}'`);
+
+      const { repository } = event;
       const {
         owner: { login: owner },
       } = repository;
       const { name: repo } = repository;
-      return { owner, repo, eventName, sha: after };
+
+      return { owner, repo, eventName, sha };
     })
   );
 
