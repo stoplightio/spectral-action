@@ -1,6 +1,7 @@
 import { getRuleset } from '@stoplight/spectral/dist/cli/services/linter/utils';
 import { isRuleEnabled } from '@stoplight/spectral/dist/runner';
 import { httpAndFileResolver } from '@stoplight/spectral/dist/resolvers/http-and-file';
+import { stylish } from '@stoplight/spectral/dist/formatters/stylish';
 import {
   Spectral,
   isJSONSchema,
@@ -11,6 +12,7 @@ import {
   isJSONSchemaLoose,
   isOpenApiv2,
   isOpenApiv3,
+  IRuleResult,
 } from '@stoplight/spectral';
 
 import * as IOEither from 'fp-ts/lib/IOEither';
@@ -95,12 +97,16 @@ export const createSpectral = (rulesetPath: string) =>
 export type fileWithContent = { path: string; content: string };
 
 export const runSpectral = (spectral: Spectral, fileDescription: fileWithContent) => {
-  return TE.tryCatch(
-    () =>
-      spectral.run(fileDescription.content, {
-        ignoreUnknownFormat: false,
-        resolve: { documentUri: fileDescription.path },
-      }),
-    E.toError
-  );
+  return TE.tryCatch(() => {
+    info(`Linting '${fileDescription.path}'`);
+
+    return spectral.run(fileDescription.content, {
+      ignoreUnknownFormat: false,
+      resolve: { documentUri: fileDescription.path },
+    });
+  }, E.toError);
+};
+
+export const logTextualReport = (results: IRuleResult[]): void => {
+  info(stylish(results));
 };

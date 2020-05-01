@@ -6,7 +6,7 @@ import { promises as fs } from 'fs';
 import { array } from 'fp-ts/lib/Array';
 import { flatten } from 'lodash';
 import { Config } from './config';
-import { runSpectral, createSpectral, fileWithContent } from './spectral';
+import { runSpectral, createSpectral, fileWithContent, logTextualReport } from './spectral';
 import { pluralizer } from './utils';
 import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
 import glob from 'fast-glob';
@@ -29,51 +29,35 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], b
   pipe(
     createSpectral(ruleset),
     TE.chain(spectral => {
-      const spectralRuns = parsed.map(v =>
-        pipe(
-          runSpectral(spectral, v),
-          TE.map(results => {
-            info(`Done linting '${v.path}'`);
-
-            if (results.length === 0) {
-              info(' No issue detected');
-            } else {
-              info(` /!\\ ${pluralizer(results.length, 'issue')} detected`);
-            }
-
-            return { path: v.path, results };
-          })
-        )
-      );
+      const spectralRuns = parsed.map(v => pipe(runSpectral(spectral, v)));
       return array.sequence(TE.taskEither)(spectralRuns);
     }),
-    TE.map(results =>
-      flatten(
-        results.map(validationResult => {
-          return validationResult.results.map<ChecksUpdateParamsOutputAnnotations>(vl => {
-            const annotation_level: ChecksUpdateParamsOutputAnnotations['annotation_level'] =
-              vl.severity === DiagnosticSeverity.Error
-                ? 'failure'
-                : vl.severity === DiagnosticSeverity.Warning
-                ? 'warning'
-                : 'notice';
+    TE.map(results => {
+      const flattened = flatten(results);
+      logTextualReport(flattened);
 
-            const sameLine = vl.range.start.line === vl.range.end.line;
-
-            return {
-              annotation_level,
-              message: vl.message,
-              title: vl.code as string,
-              start_line: 1 + vl.range.start.line,
-              end_line: 1 + vl.range.end.line,
-              start_column: sameLine ? vl.range.start.character : undefined,
-              end_column: sameLine ? vl.range.end.character : undefined,
-              path: path.relative(basePath, validationResult.path),
-            };
-          });
+      return flattened
+        .map<ChecksUpdateParamsOutputAnnotations>(vl => {
+          const annotation_level: ChecksUpdateParamsOutputAnnotations['annotation_level'] =
+            vl.severity === DiagnosticSeverity.Error
+              ? 'failure'
+              : vl.severity === DiagnosticSeverity.Warning
+              ? 'warning'
+              : 'notice';
+          const sameLine = vl.range.start.line === vl.range.end.line;
+          return {
+            annotation_level,
+            message: vl.message,
+            title: vl.code as string,
+            start_line: 1 + vl.range.start.line,
+            end_line: 1 + vl.range.end.line,
+            start_column: sameLine ? vl.range.start.character : undefined,
+            end_column: sameLine ? vl.range.end.character : undefined,
+            path: path.relative(basePath, vl.source!),
+          };
         })
-      ).sort((a, b) => (a.start_line > b.start_line ? 1 : -1))
-    )
+        .sort((a, b) => (a.start_line > b.start_line ? 1 : -1));
+    })
   );
 
 const readFilesToAnalyze = (pattern: string, workingDir: string) => {
