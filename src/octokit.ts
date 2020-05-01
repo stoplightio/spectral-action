@@ -36,20 +36,39 @@ export interface IRepositoryInfo {
   sha: string;
 }
 
+const extractSha = (eventName: string, event: any): E.Either<Error, string> => {
+  return E.tryCatch(() => {
+    switch (eventName) {
+      case 'pull_request':
+        return event.pull_request.head.sha;
+      case 'push':
+        return event.after;
+      default:
+        throw new Error(`Unsupported event '${eventName}'`);
+    }
+  }, E.toError);
+};
+
 export const getRepositoryInfoFromEvent = (
   eventPath: string,
   eventName: string
 ): TE.TaskEither<Error, IRepositoryInfo> =>
   pipe(
     TE.fromEither(E.tryCatch<Error, Event>(() => require(eventPath), E.toError)),
-    TE.map(event => {
-      const { repository, after } = event;
-      const {
-        owner: { login: owner },
-      } = repository;
-      const { name: repo } = repository;
-      return { owner, repo, eventName, sha: after };
-    })
+    TE.chain(event =>
+      pipe(
+        TE.fromEither(extractSha(eventName, event)),
+        TE.map(sha => {
+          const { repository } = event;
+          const {
+            owner: { login: owner },
+          } = repository;
+          const { name: repo } = repository;
+
+          return { owner, repo, eventName, sha };
+        })
+      )
+    )
   );
 
 export const updateGithubCheck = (
