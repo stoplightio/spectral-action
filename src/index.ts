@@ -10,7 +10,7 @@ import { runSpectral, createSpectral, fileWithContent } from './spectral';
 import { pluralizer } from './utils';
 import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
 import glob from 'fast-glob';
-import { error, info, setFailed } from '@actions/core';
+import { info, setFailed } from '@actions/core';
 import * as IOEither from 'fp-ts/lib/IOEither';
 import * as IO from 'fp-ts/lib/IO';
 import * as TE from 'fp-ts/lib/TaskEither';
@@ -187,7 +187,7 @@ program().then(result =>
   pipe(
     result,
     E.fold(
-      e => error(e.message),
+      e => setFailed(`${e.message}\n${e.stack}`),
       () => info('Analysis is complete')
     )
   )
