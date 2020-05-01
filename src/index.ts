@@ -174,7 +174,7 @@ const program = pipe(
               )
             ),
             TE.orElse(e => {
-              setFailed(e.message);
+              setFailed(`${e.message}\n${e.stack}`);
               return updateGithubCheck(octokit, check, event, [], 'failure', e.message);
             })
           )
