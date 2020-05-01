@@ -147,12 +147,14 @@ const program = pipe(
               annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
             ),
             TE.map(checkResponse => {
-              info(
-                `Check run '${checkResponse.data.name}' concluded with '${checkResponse.data.conclusion}' (${checkResponse.data.html_url})`
-              );
-              info(
-                `Commit ${event.sha} has been annotated (https://github.com/${event.owner}/${event.repo}/commit/${event.sha})`
-              );
+              if (checkResponse !== undefined) {
+                info(
+                  `Check run '${checkResponse.data.name}' concluded with '${checkResponse.data.conclusion}' (${checkResponse.data.html_url})`
+                );
+                info(
+                  `Commit ${event.sha} has been annotated (https://github.com/${event.owner}/${event.repo}/commit/${event.sha})`
+                );
+              }
 
               const fatalErrors = annotations.filter(a => a.annotation_level === 'failure');
               if (fatalErrors.length > 0) {

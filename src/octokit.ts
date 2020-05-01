@@ -1,9 +1,15 @@
 import { GitHub } from '@actions/github';
+import { info, warning } from '@actions/core';
 import * as TE from 'fp-ts/lib/TaskEither';
 import * as E from 'fp-ts/lib/Either';
 import { pipe } from 'fp-ts/lib/pipeable';
-import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
-import { info, warning } from '@actions/core';
+import {
+  ChecksCreateResponse,
+  ChecksUpdateParamsOutputAnnotations,
+  ChecksUpdateParams,
+  Response,
+  ChecksUpdateResponse,
+} from '@octokit/rest';
 
 type Event = {
   after: string;
@@ -17,18 +23,33 @@ type Event = {
 
 export const createOctokitInstance = (token: string) => TE.fromEither(E.tryCatch(() => new GitHub(token), E.toError));
 
+const tryCreateGithubCheck = async (
+  octokit: GitHub,
+  event: IRepositoryInfo,
+  name: string
+): Promise<Response<ChecksCreateResponse> | undefined> => {
+  try {
+    return await octokit.checks.create({
+      owner: event.owner,
+      repo: event.repo,
+      name,
+      head_sha: event.sha,
+      status: 'in_progress',
+    });
+  } catch (e) {
+    if (e.message === 'Resource not accessible by integration') {
+      // not enough permissions to create annotations
+
+      warning('Skipping creation of checkrun because insufficient rights.');
+      return undefined;
+    }
+
+    throw e;
+  }
+};
+
 export const createGithubCheck = (octokit: GitHub, event: IRepositoryInfo, name: string) =>
-  TE.tryCatch(
-    () =>
-      octokit.checks.create({
-        owner: event.owner,
-        repo: event.repo,
-        name,
-        head_sha: event.sha,
-        status: 'in_progress',
-      }),
-    E.toError
-  );
+  TE.tryCatch(() => tryCreateGithubCheck(octokit, event, name), E.toError);
 
 export interface IRepositoryInfo {
   owner: string;
@@ -70,38 +91,48 @@ export const getRepositoryInfoFromEvent = (
     })
   );
 
-export const updateGithubCheck = (
+export const tryUpdateGithubCheck = async (
   octokit: GitHub,
-  check: Response<ChecksCreateResponse>,
+  check: Response<ChecksCreateResponse> | undefined,
   event: IRepositoryInfo,
   annotations: ChecksUpdateParamsOutputAnnotations[],
   conclusion: ChecksUpdateParams['conclusion'],
   message?: string
-) =>
-  TE.tryCatch(
-    () =>
-      octokit.checks.update({
-        check_run_id: check.data.id,
-        owner: event.owner,
-        name: check.data.name,
-        repo: event.repo,
-        status: 'completed',
-        conclusion,
-        completed_at: new Date().toISOString(),
-        output: {
-          title: check.data.name,
-          summary: message
-            ? message
-            : conclusion === 'success'
-            ? 'Lint completed successfully'
-            : 'Lint completed with some errors',
+): Promise<Response<ChecksUpdateResponse> | undefined> => {
+  if (check === undefined) {
+    return undefined;
+  }
 
-          // TODO: Split calls when annotations.length > 50
-          // From https://octokit.github.io/rest.js/v17#checks-update
-          // => "The Checks API limits the number of annotations to a maximum of 50 per API request.
-          // To create more than 50 annotations, you have to make multiple requests to the Update a check run endpoint."
-          annotations,
-        },
-      }),
-    E.toError
-  );
+  return octokit.checks.update({
+    check_run_id: check.data.id,
+    owner: event.owner,
+    name: check.data.name,
+    repo: event.repo,
+    status: 'completed',
+    conclusion,
+    completed_at: new Date().toISOString(),
+    output: {
+      title: check.data.name,
+      summary: message
+        ? message
+        : conclusion === 'success'
+        ? 'Lint completed successfully'
+        : 'Lint completed with some errors',
+
+      // TODO: Split calls when annotations.length > 50
+      // From https://octokit.github.io/rest.js/v17#checks-update
+      // => "The Checks API limits the number of annotations to a maximum of 50 per API request.
+      // To create more than 50 annotations, you have to make multiple requests to the Update a check run endpoint."
+      annotations,
+    },
+  });
+};
+
+export const updateGithubCheck = (
+  octokit: GitHub,
+  check: Response<ChecksCreateResponse> | undefined,
+  event: IRepositoryInfo,
+  annotations: ChecksUpdateParamsOutputAnnotations[],
+  conclusion: ChecksUpdateParams['conclusion'],
+  message?: string
+) => TE.tryCatch(() => tryUpdateGithubCheck(octokit, check, event, annotations, conclusion, message), E.toError);
