@@ -1,18 +1,23 @@
 import { GitHub } from '@actions/github';
 import * as TE from 'fp-ts/lib/TaskEither';
 import * as E from 'fp-ts/lib/Either';
-import { pipe } from 'fp-ts/lib/pipeable';
+import * as D from 'io-ts/lib/Decoder';
+import { draw } from 'io-ts/lib/Tree';
+import { Do } from 'fp-ts-contrib/lib/Do';
 import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
+import { pipe } from 'fp-ts/lib/pipeable';
 
-type Event = {
-  after: string;
-  repository: {
-    name: string;
-    owner: {
-      login: string;
-    };
-  };
-};
+const EventDecoder = D.type({
+  after: D.string,
+  repository: D.type({
+    name: D.string,
+    owner: D.type({
+      login: D.string,
+    }),
+  }),
+});
+
+type Event = D.TypeOf<typeof EventDecoder>;
 
 export const createOctokitInstance = (token: string) => TE.fromEither(E.tryCatch(() => new GitHub(token), E.toError));
 
@@ -36,21 +41,43 @@ export interface IRepositoryInfo {
   sha: string;
 }
 
-export const getRepositoryInfoFromEvent = (
-  eventPath: string,
-  eventName: string
-): TE.TaskEither<Error, IRepositoryInfo> =>
+const extractSha = (eventName: string, event: any): E.Either<Error, string> => {
+  switch (eventName) {
+    case 'pull_request':
+      return E.right(event.pull_request.head.sha);
+    case 'push':
+      return E.right(event.after);
+    default:
+      return E.left(Error(`Unsupported event '${eventName}'`));
+  }
+};
+
+function buildRepositoryInfoFrom(event: Event, eventName: string, sha: string): IRepositoryInfo {
+  const { repository } = event;
+  const {
+    owner: { login: owner },
+  } = repository;
+  const { name: repo } = repository;
+
+  return { owner, repo, eventName, sha };
+}
+
+const parseEventFile = (eventPath: string) =>
   pipe(
-    TE.fromEither(E.tryCatch<Error, Event>(() => require(eventPath), E.toError)),
-    TE.map(event => {
-      const { repository, after } = event;
-      const {
-        owner: { login: owner },
-      } = repository;
-      const { name: repo } = repository;
-      return { owner, repo, eventName, sha: after };
-    })
+    E.tryCatch<Error, unknown>(() => require(eventPath), E.toError),
+    E.chain(event =>
+      pipe(
+        EventDecoder.decode(event),
+        E.mapLeft(errors => new Error(draw(errors)))
+      )
+    )
   );
+
+export const getRepositoryInfoFromEvent = (eventPath: string, eventName: string): E.Either<Error, IRepositoryInfo> =>
+  Do(E.either)
+    .bind('event', parseEventFile(eventPath))
+    .bindL('sha', ({ event }) => extractSha(eventName, event))
+    .return(({ event, sha }) => buildRepositoryInfoFrom(event, eventName, sha));
 
 export const updateGithubCheck = (
   octokit: GitHub,

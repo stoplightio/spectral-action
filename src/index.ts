@@ -1,7 +1,6 @@
 import { join } from 'path';
 import { DiagnosticSeverity } from '@stoplight/types';
 import { warning } from '@actions/core';
-import { EOL } from 'os';
 import { promises as fs } from 'fs';
 import { array } from 'fp-ts/lib/Array';
 import { flatten } from 'lodash';
@@ -16,7 +15,7 @@ import * as IO from 'fp-ts/lib/IO';
 import * as TE from 'fp-ts/lib/TaskEither';
 import * as T from 'fp-ts/lib/Task';
 import * as E from 'fp-ts/lib/Either';
-import { failure } from 'io-ts/lib/PathReporter';
+import { draw } from 'io-ts/lib/Tree';
 import { pipe } from 'fp-ts/lib/pipeable';
 import { identity } from 'lodash';
 import { ChecksUpdateParamsOutputAnnotations } from '@octokit/rest';
@@ -110,7 +109,7 @@ const getEnv = IO.of(process.env);
 const decodeConfig = (env: NodeJS.ProcessEnv) =>
   pipe(
     Config.decode(env),
-    E.mapLeft(e => new Error(failure(e).join(EOL)))
+    E.mapLeft(e => new Error(draw(e)))
   );
 
 const createConfigFromEnv = pipe(
@@ -130,7 +129,7 @@ const program = pipe(
       INPUT_SPECTRAL_RULESET,
     }) =>
       pipe(
-        getRepositoryInfoFromEvent(GITHUB_EVENT_PATH, INPUT_EVENT_NAME),
+        TE.fromEither(getRepositoryInfoFromEvent(GITHUB_EVENT_PATH, INPUT_EVENT_NAME)),
         TE.chain(event =>
           pipe(
             createOctokitInstance(INPUT_REPO_TOKEN),
