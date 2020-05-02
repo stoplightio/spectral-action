@@ -130,7 +130,7 @@ const program = pipe(
       INPUT_SPECTRAL_RULESET,
     }) =>
       pipe(
-        getRepositoryInfoFromEvent(GITHUB_EVENT_PATH, INPUT_EVENT_NAME),
+        TE.fromEither(getRepositoryInfoFromEvent(GITHUB_EVENT_PATH, INPUT_EVENT_NAME)),
         TE.chain(event =>
           pipe(
             createOctokitInstance(INPUT_REPO_TOKEN),

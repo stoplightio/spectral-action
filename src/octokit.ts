@@ -37,36 +37,33 @@ export interface IRepositoryInfo {
 }
 
 const extractSha = (eventName: string, event: any): E.Either<Error, string> => {
-  return E.tryCatch(() => {
-    switch (eventName) {
-      case 'pull_request':
-        return event.pull_request.head.sha;
-      case 'push':
-        return event.after;
-      default:
-        throw new Error(`Unsupported event '${eventName}'`);
-    }
-  }, E.toError);
+  switch (eventName) {
+    case 'pull_request':
+      return E.right(event.pull_request.head.sha);
+    case 'push':
+      return E.right(event.after);
+    default:
+      return E.left(Error(`Unsupported event '${eventName}'`));
+  }
 };
 
-export const getRepositoryInfoFromEvent = (
-  eventPath: string,
-  eventName: string
-): TE.TaskEither<Error, IRepositoryInfo> =>
-  pipe(
-    TE.fromEither(E.tryCatch<Error, Event>(() => require(eventPath), E.toError)),
-    TE.chain(event =>
-      pipe(
-        TE.fromEither(extractSha(eventName, event)),
-        TE.map(sha => {
-          const { repository } = event;
-          const {
-            owner: { login: owner },
-          } = repository;
-          const { name: repo } = repository;
+function buildRepositoryInfoFrom(event: Event, eventName: string, sha: string): IRepositoryInfo {
+  const { repository } = event;
+  const {
+    owner: { login: owner },
+  } = repository;
+  const { name: repo } = repository;
 
-          return { owner, repo, eventName, sha };
-        })
+  return { owner, repo, eventName, sha };
+}
+
+export const getRepositoryInfoFromEvent = (eventPath: string, eventName: string): E.Either<Error, IRepositoryInfo> =>
+  pipe(
+    E.tryCatch<Error, Event>(() => require(eventPath), E.toError),
+    E.chain(event =>
+      pipe(
+        extractSha(eventName, event),
+        E.map(sha => buildRepositoryInfoFrom(event, eventName, sha))
       )
     )
   );
