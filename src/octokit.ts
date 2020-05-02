@@ -1,7 +1,7 @@
 import { GitHub } from '@actions/github';
 import * as TE from 'fp-ts/lib/TaskEither';
 import * as E from 'fp-ts/lib/Either';
-import { pipe } from 'fp-ts/lib/pipeable';
+import { Do } from 'fp-ts-contrib/lib/Do';
 import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
 
 type Event = {
@@ -58,15 +58,13 @@ function buildRepositoryInfoFrom(event: Event, eventName: string, sha: string): 
 }
 
 export const getRepositoryInfoFromEvent = (eventPath: string, eventName: string): E.Either<Error, IRepositoryInfo> =>
-  pipe(
-    E.tryCatch<Error, Event>(() => require(eventPath), E.toError),
-    E.chain(event =>
-      pipe(
-        extractSha(eventName, event),
-        E.map(sha => buildRepositoryInfoFrom(event, eventName, sha))
-      )
+  Do(E.either)
+    .bind(
+      'event',
+      E.tryCatch<Error, Event>(() => require(eventPath), E.toError)
     )
-  );
+    .bindL('sha', ({ event }) => extractSha(eventName, event))
+    .return(({ event, sha }) => buildRepositoryInfoFrom(event, eventName, sha));
 
 export const updateGithubCheck = (
   octokit: GitHub,
