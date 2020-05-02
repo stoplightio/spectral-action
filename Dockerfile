@@ -7,7 +7,7 @@ COPY src ./src
 COPY tsconfig.json tsconfig.json
 
 RUN yarn
-RUN yarn build || true
+RUN yarn build
 
 ###############################################################
 

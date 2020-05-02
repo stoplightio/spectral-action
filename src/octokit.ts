@@ -1,23 +1,23 @@
 import { GitHub } from '@actions/github';
 import * as TE from 'fp-ts/lib/TaskEither';
 import * as E from 'fp-ts/lib/Either';
+import * as D from 'io-ts/lib/Decoder';
+import { draw } from 'io-ts/lib/Tree';
 import { Do } from 'fp-ts-contrib/lib/Do';
-import * as t from 'io-ts';
 import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
 import { pipe } from 'fp-ts/lib/pipeable';
-import { failure } from 'io-ts/lib/PathReporter';
 
-const EventDecoder = t.strict({
-  after: t.string,
-  repository: t.strict({
-    name: t.string,
-    owner: t.strict({
-      login: t.string,
+const EventDecoder = D.type({
+  after: D.string,
+  repository: D.type({
+    name: D.string,
+    owner: D.type({
+      login: D.string,
     }),
   }),
 });
 
-type Event = t.TypeOf<typeof EventDecoder>;
+type Event = D.TypeOf<typeof EventDecoder>;
 
 export const createOctokitInstance = (token: string) => TE.fromEither(E.tryCatch(() => new GitHub(token), E.toError));
 
@@ -68,7 +68,7 @@ const parseEventFile = (eventPath: string) =>
     E.chain(event =>
       pipe(
         EventDecoder.decode(event),
-        E.mapLeft(errors => new Error(failure(errors).join(';')))
+        E.mapLeft(errors => new Error(draw(errors)))
       )
     )
   );
