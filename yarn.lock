@@ -381,15 +381,10 @@
   resolved "https://registry.yarnpkg.com/@types/parse-json/-/parse-json-4.0.0.tgz#2f8bb441434d163b35fb8ffdccd7138927ffb8c0"
   integrity sha512-//oorEZjL6sbPcKUaCdIGlIUeH26mgzimjBB77G6XRgnDl/L5wOnpyBGRe/Mmf5CVW3PwEBE1NjiMZ/ssFh4wA==
 
-"@types/urijs@^1.19":
-  version "1.19.6"
-  resolved "https://registry.yarnpkg.com/@types/urijs/-/urijs-1.19.6.tgz#4cee39e4e5ad8d276d617d159ffcb423ca2fd9f1"
-  integrity sha512-kdnK+JtEiUgnpB7r99SAZjjz9nhZ/7MWo/hxTSNfvslAa4r8jpDXDEJ2cQrjemes4eX2Y5Om3udmcc8QalPzOA==
-
-"@types/urijs@^1.19.8":
-  version "1.19.8"
-  resolved "https://registry.yarnpkg.com/@types/urijs/-/urijs-1.19.8.tgz#a66b2fd8b1d3cf3ef5bae7ca093b7d1b50e48c0a"
-  integrity sha512-SVQd2Qq0oL+b8VtJbQyv0cMIdU7fbRDcg2JIpcBvv+GUayJ3c5Ll1K+iivZl6ifcI6NbYcwjqDjljDFSiSGOeA==
+"@types/urijs@^1.19", "@types/urijs@^1.19.9":
+  version "1.19.9"
+  resolved "https://registry.yarnpkg.com/@types/urijs/-/urijs-1.19.9.tgz#cedccc8e69677080cc8bb2e9ec50c6dd6093429e"
+  integrity sha512-/tiJyrc0GPcsReHzgC0SXwOmoPjLqYe01W7dLYB0yasQXMbcRee+ZIk+g8MIQhoBS8fPoBQO3Y93+aeBrI93Ug==
 
 abort-controller@^3.0.0:
   version "3.0.0"
