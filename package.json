@@ -33,7 +33,7 @@
     "@octokit/graphql": "^4.3.1",
     "@octokit/request": "^5.4.2",
     "@octokit/rest": "^16.35.0",
-    "@stoplight/json": "^3.7.1",
+    "@stoplight/json": "^3.8.2",
     "@stoplight/spectral": "^5.3.0",
     "fast-glob": "^3.2.2",
     "fp-ts": "^2.5.4",
