@@ -1,15 +1,20 @@
 on:
   - push
   - pull_request
-name: Spectral Lint
+name: CI
 jobs:
   spectralChecks:
     name: Spectral checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Spectral checks
+      - name: Test this action against an incorrect file.
+        id: expect-failure
         uses: ./
         with:
-          file_glob: ./**/*.yml
+          file_glob: ./fixtures/*.yml
           spectral_ruleset: .my-custom.spectral.yml
+        continue-on-error: true
+
+      - if: steps.expect-failure.output.status == 'failure'
+        run: exit 0
