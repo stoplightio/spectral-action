@@ -911,10 +911,10 @@ find-versions@^3.2.0:
   dependencies:
     semver-regex "^2.0.0"
 
-fp-ts-contrib@^0.1.15:
-  version "0.1.15"
-  resolved "https://registry.yarnpkg.com/fp-ts-contrib/-/fp-ts-contrib-0.1.15.tgz#3b7225f7143f49b4a7719fa59bb9f04ff45bf634"
-  integrity sha512-aSuDUJAHN3QBlDf8PJ8M62l7mdUNeOWTGFFuIrK+A7tCLejGU43dDj2FM0c5dmz8CV/GXsRU3XPWCzaL5uIyvA==
+fp-ts-contrib@^0.1.19:
+  version "0.1.19"
+  resolved "https://registry.yarnpkg.com/fp-ts-contrib/-/fp-ts-contrib-0.1.19.tgz#5154f2f277373d54e5b4da6d7ca6751aaa8cfc74"
+  integrity sha512-u0dZbkh0gLrtiIV/spcwU7D8uoVAUCD7+Z5xSmDGHVKrw6G7jOQh6MlC0IrHXqiu1+J51ui/oFrKOEj9jA99LQ==
 
 fp-ts@^2.5.4:
   version "2.5.4"
