@@ -916,10 +916,10 @@ fp-ts-contrib@^0.1.15:
   resolved "https://registry.yarnpkg.com/fp-ts-contrib/-/fp-ts-contrib-0.1.15.tgz#3b7225f7143f49b4a7719fa59bb9f04ff45bf634"
   integrity sha512-aSuDUJAHN3QBlDf8PJ8M62l7mdUNeOWTGFFuIrK+A7tCLejGU43dDj2FM0c5dmz8CV/GXsRU3XPWCzaL5uIyvA==
 
-fp-ts@^2.5.4:
-  version "2.5.4"
-  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.5.4.tgz#f184079aaa78403ea66458517be7787e0d593429"
-  integrity sha512-cZlLeEneRYypc2dOzB9h8+bd9mQhJVyt2g0Dny2gKR7uWNgA4EmLSJyguLYsTU44nJSSG9EjurUalEc0wQqeKw==
+fp-ts@^2.8.5:
+  version "2.8.5"
+  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.8.5.tgz#1b4247081ea066cc152b48a55a0bc13c30828701"
+  integrity sha512-g6do+Q/IQsxgsd2qU6+QnAbZaPR533seIbFyLGqWSxhNX4+F+cY37QdaYmMUOzekLOv/yg/2f15tc26tzDatgw==
 
 ftp@~0.3.10:
   version "0.3.10"
