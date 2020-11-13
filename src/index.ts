@@ -3,7 +3,6 @@ import { DiagnosticSeverity } from '@stoplight/types';
 import { warning } from '@actions/core';
 import { promises as fs } from 'fs';
 import { array } from 'fp-ts/Array';
-import { flatten } from 'lodash';
 import { Config } from './config';
 import { runSpectral, createSpectral, FileWithContent } from './spectral';
 import { pluralizer } from './utils';
@@ -52,8 +51,8 @@ const createSpectralAnnotations = (ruleset: string, parsed: FileWithContent[], b
       return array.sequence(TE.taskEither)(spectralRuns);
     }),
     TE.map(results =>
-      flatten(
-        results.map(validationResult => {
+      results
+        .flatMap(validationResult => {
           return validationResult.results.map<Annotations[0]>(vl => {
             const annotation_level: Annotations[0]['annotation_level'] =
               vl.severity === DiagnosticSeverity.Error
@@ -76,7 +75,7 @@ const createSpectralAnnotations = (ruleset: string, parsed: FileWithContent[], b
             };
           });
         })
-      ).sort((a, b) => (a.start_line > b.start_line ? 1 : -1))
+        .sort((a, b) => (a.start_line > b.start_line ? 1 : -1))
     )
   );
 
