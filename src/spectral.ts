@@ -1,5 +1,4 @@
 import { getRuleset } from '@stoplight/spectral/dist/cli/services/linter/utils';
-import { isRuleEnabled } from '@stoplight/spectral/dist/runner';
 import { httpAndFileResolver } from '@stoplight/spectral/dist/resolvers/http-and-file';
 import {
   Spectral,
@@ -77,7 +76,7 @@ export const createSpectral = (rulesetPath: string) =>
         spectral.setRuleset(ruleset);
 
         const loadedRules = Object.values(spectral.rules);
-        info(` - ${pluralizer(loadedRules.length, 'rule')} (${loadedRules.filter(isRuleEnabled).length} enabled)`);
+        info(` - ${pluralizer(loadedRules.length, 'rule')} (${loadedRules.filter(r => r.enabled).length} enabled)`);
 
         const exceptionsStats = evaluateNumberOfExceptions(ruleset.exceptions);
         info(
