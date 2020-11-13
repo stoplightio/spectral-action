@@ -1,9 +1,15 @@
-import { GitHub } from '@actions/github';
+import { getOctokit } from '@actions/github';
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import * as D from 'io-ts/Decoder';
-import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
+import type { Endpoints, GetResponseDataTypeFromEndpointMethod } from '@octokit/types';
 import { pipe } from 'fp-ts/pipeable';
+
+export type Annotations = NonNullable<
+  NonNullable<Endpoints['PATCH /repos/:owner/:repo/check-runs/:check_run_id']['parameters']['output']>['annotations']
+>;
+type Conclusions = Endpoints['PATCH /repos/:owner/:repo/check-runs/:check_run_id']['parameters']['conclusion'];
+type GitHub = ReturnType<typeof getOctokit>;
 
 const EventDecoder = D.type({
   after: D.string,
@@ -17,9 +23,9 @@ const EventDecoder = D.type({
 
 type Event = D.TypeOf<typeof EventDecoder>;
 
-export const createOctokitInstance = (token: string) => TE.fromEither(E.tryCatch(() => new GitHub(token), E.toError));
+export const createOctokitInstance = (token: string) => E.tryCatch(() => getOctokit(token), E.toError);
 
-export const createGithubCheck = (octokit: GitHub, event: IRepositoryInfo, name: string) =>
+export const createGithubCheck = (octokit: GitHub, event: RepositoryInfo, name: string) =>
   TE.tryCatch(
     () =>
       octokit.checks.create({
@@ -32,7 +38,7 @@ export const createGithubCheck = (octokit: GitHub, event: IRepositoryInfo, name:
     E.toError
   );
 
-export interface IRepositoryInfo {
+export interface RepositoryInfo {
   owner: string;
   repo: string;
   eventName: string;
@@ -50,7 +56,7 @@ const extractSha = (eventName: string, event: any): E.Either<Error, string> => {
   }
 };
 
-function buildRepositoryInfoFrom(event: Event, eventName: string, sha: string): IRepositoryInfo {
+function buildRepositoryInfoFrom(event: Event, eventName: string, sha: string): RepositoryInfo {
   const { repository } = event;
   const {
     owner: { login: owner },
@@ -71,7 +77,7 @@ const parseEventFile = (eventPath: string) =>
     )
   );
 
-export const getRepositoryInfoFromEvent = (eventPath: string, eventName: string): E.Either<Error, IRepositoryInfo> =>
+export const getRepositoryInfoFromEvent = (eventPath: string, eventName: string): E.Either<Error, RepositoryInfo> =>
   pipe(
     parseEventFile(eventPath),
     E.bindTo('event'),
@@ -81,24 +87,24 @@ export const getRepositoryInfoFromEvent = (eventPath: string, eventName: string)
 
 export const updateGithubCheck = (
   octokit: GitHub,
-  check: Response<ChecksCreateResponse>,
-  event: IRepositoryInfo,
-  annotations: ChecksUpdateParamsOutputAnnotations[],
-  conclusion: ChecksUpdateParams['conclusion'],
+  check: GetResponseDataTypeFromEndpointMethod<typeof octokit.checks.create>,
+  event: RepositoryInfo,
+  annotations: Annotations,
+  conclusion: Conclusions,
   message?: string
 ) =>
   TE.tryCatch(
     () =>
       octokit.checks.update({
-        check_run_id: check.data.id,
+        check_run_id: check.id,
         owner: event.owner,
-        name: check.data.name,
+        name: check.name,
         repo: event.repo,
         status: 'completed',
         conclusion,
         completed_at: new Date().toISOString(),
         output: {
-          title: check.data.name,
+          title: check.name,
           summary: message
             ? message
             : conclusion === 'success'

@@ -7,7 +7,13 @@ import { flatten } from 'lodash';
 import { Config } from './config';
 import { runSpectral, createSpectral, fileWithContent } from './spectral';
 import { pluralizer } from './utils';
-import { createGithubCheck, createOctokitInstance, getRepositoryInfoFromEvent, updateGithubCheck } from './octokit';
+import {
+  Annotations,
+  createGithubCheck,
+  createOctokitInstance,
+  getRepositoryInfoFromEvent,
+  updateGithubCheck,
+} from './octokit';
 import glob from 'fast-glob';
 import { error, info, setFailed } from '@actions/core';
 import * as IOEither from 'fp-ts/IOEither';
@@ -18,7 +24,6 @@ import * as E from 'fp-ts/Either';
 import * as D from 'io-ts/Decoder';
 import { pipe } from 'fp-ts/pipeable';
 import { identity } from 'lodash';
-import { ChecksUpdateParamsOutputAnnotations } from '@octokit/rest';
 import * as path from 'path';
 
 const CHECK_NAME = 'Lint';
@@ -49,8 +54,8 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], b
     TE.map(results =>
       flatten(
         results.map(validationResult => {
-          return validationResult.results.map<ChecksUpdateParamsOutputAnnotations>(vl => {
-            const annotation_level: ChecksUpdateParamsOutputAnnotations['annotation_level'] =
+          return validationResult.results.map<Annotations[0]>(vl => {
+            const annotation_level: Annotations[0]['annotation_level'] =
               vl.severity === DiagnosticSeverity.Error
                 ? 'failure'
                 : vl.severity === DiagnosticSeverity.Warning
@@ -62,7 +67,7 @@ const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], b
             return {
               annotation_level,
               message: vl.message,
-              title: vl.code as string,
+              title: String(vl.code),
               start_line: 1 + vl.range.start.line,
               end_line: 1 + vl.range.end.line,
               start_column: sameLine ? vl.range.start.character : undefined,
@@ -130,10 +135,10 @@ const program = pipe(
     }) =>
       pipe(
         TE.fromEither(getRepositoryInfoFromEvent(GITHUB_EVENT_PATH, INPUT_EVENT_NAME)),
-        TE.chain(event =>
+        TE.chainEitherK(event =>
           pipe(
             createOctokitInstance(INPUT_REPO_TOKEN),
-            TE.map(octokit => ({ octokit, event }))
+            E.map(octokit => ({ octokit, event }))
           )
         ),
         TE.chain(({ octokit, event }) =>
@@ -150,7 +155,7 @@ const program = pipe(
               pipe(
                 updateGithubCheck(
                   octokit,
-                  check,
+                  check.data,
                   event,
                   annotations,
                   annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
@@ -174,7 +179,7 @@ const program = pipe(
             ),
             TE.orElse(e => {
               setFailed(e.message);
-              return updateGithubCheck(octokit, check, event, [], 'failure', e.message);
+              return updateGithubCheck(octokit, check.data, event, [], 'failure', e.message);
             })
           )
         )
