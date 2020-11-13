@@ -91,9 +91,9 @@ export const createSpectral = (rulesetPath: string) =>
     )
   );
 
-export type fileWithContent = { path: string; content: string };
+export type FileWithContent = { path: string; content: string };
 
-export const runSpectral = (spectral: Spectral, fileDescription: fileWithContent) => {
+export const runSpectral = (spectral: Spectral, fileDescription: FileWithContent) => {
   return TE.tryCatch(
     () =>
       spectral.run(fileDescription.content, {
