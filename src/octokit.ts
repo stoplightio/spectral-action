@@ -1,11 +1,11 @@
 import { GitHub } from '@actions/github';
-import * as TE from 'fp-ts/lib/TaskEither';
-import * as E from 'fp-ts/lib/Either';
-import * as D from 'io-ts/lib/Decoder';
-import { draw } from 'io-ts/lib/Tree';
+import * as TE from 'fp-ts/TaskEither';
+import * as E from 'fp-ts/Either';
+import * as D from 'io-ts/Decoder';
+import { draw } from 'io-ts/Decoder';
 import { Do } from 'fp-ts-contrib/lib/Do';
 import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
-import { pipe } from 'fp-ts/lib/pipeable';
+import { pipe } from 'fp-ts/pipeable';
 
 const EventDecoder = D.type({
   after: D.string,

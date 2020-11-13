@@ -13,10 +13,10 @@ import {
   isOpenApiv3,
 } from '@stoplight/spectral';
 
-import * as IOEither from 'fp-ts/lib/IOEither';
-import * as TE from 'fp-ts/lib/TaskEither';
-import * as E from 'fp-ts/lib/Either';
-import { pipe } from 'fp-ts/lib/pipeable';
+import * as IOEither from 'fp-ts/IOEither';
+import * as TE from 'fp-ts/TaskEither';
+import * as E from 'fp-ts/Either';
+import { pipe } from 'fp-ts/pipeable';
 
 import { info } from '@actions/core';
 import { pluralizer } from './utils';
