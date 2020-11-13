@@ -1,5 +1,4 @@
 import { getRuleset } from '@stoplight/spectral/dist/cli/services/linter/utils';
-import { isRuleEnabled } from '@stoplight/spectral/dist/runner';
 import { httpAndFileResolver } from '@stoplight/spectral/dist/resolvers/http-and-file';
 import {
   Spectral,
@@ -13,10 +12,10 @@ import {
   isOpenApiv3,
 } from '@stoplight/spectral';
 
-import * as IOEither from 'fp-ts/lib/IOEither';
-import * as TE from 'fp-ts/lib/TaskEither';
-import * as E from 'fp-ts/lib/Either';
-import { pipe } from 'fp-ts/lib/pipeable';
+import * as IOEither from 'fp-ts/IOEither';
+import * as TE from 'fp-ts/TaskEither';
+import * as E from 'fp-ts/Either';
+import { pipe } from 'fp-ts/pipeable';
 
 import { info } from '@actions/core';
 import { pluralizer } from './utils';
@@ -77,7 +76,7 @@ export const createSpectral = (rulesetPath: string) =>
         spectral.setRuleset(ruleset);
 
         const loadedRules = Object.values(spectral.rules);
-        info(` - ${pluralizer(loadedRules.length, 'rule')} (${loadedRules.filter(isRuleEnabled).length} enabled)`);
+        info(` - ${pluralizer(loadedRules.length, 'rule')} (${loadedRules.filter(r => r.enabled).length} enabled)`);
 
         const exceptionsStats = evaluateNumberOfExceptions(ruleset.exceptions);
         info(
@@ -92,9 +91,9 @@ export const createSpectral = (rulesetPath: string) =>
     )
   );
 
-export type fileWithContent = { path: string; content: string };
+export type FileWithContent = { path: string; content: string };
 
-export const runSpectral = (spectral: Spectral, fileDescription: fileWithContent) => {
+export const runSpectral = (spectral: Spectral, fileDescription: FileWithContent) => {
   return TE.tryCatch(
     () =>
       spectral.run(fileDescription.content, {

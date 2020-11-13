@@ -1,11 +1,19 @@
-import { GitHub } from '@actions/github';
-import * as TE from 'fp-ts/lib/TaskEither';
-import * as E from 'fp-ts/lib/Either';
-import * as D from 'io-ts/lib/Decoder';
-import { draw } from 'io-ts/lib/Tree';
-import { Do } from 'fp-ts-contrib/lib/Do';
-import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
-import { pipe } from 'fp-ts/lib/pipeable';
+import { getOctokit } from '@actions/github';
+import * as TE from 'fp-ts/TaskEither';
+import * as E from 'fp-ts/Either';
+import * as D from 'io-ts/Decoder';
+import { sequence } from 'fp-ts/Array';
+import type { Endpoints, GetResponseDataTypeFromEndpointMethod } from '@octokit/types';
+import { pipe } from 'fp-ts/pipeable';
+import { chunk } from 'lodash';
+
+const sequenceTaskEither = sequence(TE.taskEither);
+
+export type Annotations = NonNullable<
+  NonNullable<Endpoints['PATCH /repos/:owner/:repo/check-runs/:check_run_id']['parameters']['output']>['annotations']
+>;
+type Conclusions = Endpoints['PATCH /repos/:owner/:repo/check-runs/:check_run_id']['parameters']['conclusion'];
+type GitHub = ReturnType<typeof getOctokit>;
 
 const EventDecoder = D.type({
   after: D.string,
@@ -19,9 +27,9 @@ const EventDecoder = D.type({
 
 type Event = D.TypeOf<typeof EventDecoder>;
 
-export const createOctokitInstance = (token: string) => TE.fromEither(E.tryCatch(() => new GitHub(token), E.toError));
+export const createOctokitInstance = (token: string) => E.tryCatch(() => getOctokit(token), E.toError);
 
-export const createGithubCheck = (octokit: GitHub, event: IRepositoryInfo, name: string) =>
+export const createGithubCheck = (octokit: GitHub, event: RepositoryInfo, name: string) =>
   TE.tryCatch(
     () =>
       octokit.checks.create({
@@ -34,7 +42,7 @@ export const createGithubCheck = (octokit: GitHub, event: IRepositoryInfo, name:
     E.toError
   );
 
-export interface IRepositoryInfo {
+export interface RepositoryInfo {
   owner: string;
   repo: string;
   eventName: string;
@@ -44,7 +52,7 @@ export interface IRepositoryInfo {
 const extractSha = (eventName: string, event: any): E.Either<Error, string> => {
   switch (eventName) {
     case 'pull_request':
-      return E.right(event.pull_request.head.sha);
+      return E.right(event.pull_request ? event.pull_request.head.sha : event.after);
     case 'push':
       return E.right(event.after);
     default:
@@ -52,7 +60,7 @@ const extractSha = (eventName: string, event: any): E.Either<Error, string> => {
   }
 };
 
-function buildRepositoryInfoFrom(event: Event, eventName: string, sha: string): IRepositoryInfo {
+function buildRepositoryInfoFrom(event: Event, eventName: string, sha: string): RepositoryInfo {
   const { repository } = event;
   const {
     owner: { login: owner },
@@ -62,55 +70,61 @@ function buildRepositoryInfoFrom(event: Event, eventName: string, sha: string): 
   return { owner, repo, eventName, sha };
 }
 
+const decodeEvent = (event: unknown) =>
+  pipe(
+    EventDecoder.decode(event),
+    E.mapLeft(errors => new Error(D.draw(errors)))
+  );
+
 const parseEventFile = (eventPath: string) =>
   pipe(
     E.tryCatch<Error, unknown>(() => require(eventPath), E.toError),
-    E.chain(event =>
-      pipe(
-        EventDecoder.decode(event),
-        E.mapLeft(errors => new Error(draw(errors)))
-      )
-    )
+    E.chain(decodeEvent)
   );
 
-export const getRepositoryInfoFromEvent = (eventPath: string, eventName: string): E.Either<Error, IRepositoryInfo> =>
-  Do(E.either)
-    .bind('event', parseEventFile(eventPath))
-    .bindL('sha', ({ event }) => extractSha(eventName, event))
-    .return(({ event, sha }) => buildRepositoryInfoFrom(event, eventName, sha));
+export const getRepositoryInfoFromEvent = (eventPath: string, eventName: string): E.Either<Error, RepositoryInfo> =>
+  pipe(
+    parseEventFile(eventPath),
+    E.bindTo('event'),
+    E.bind('sha', ({ event }) => extractSha(eventName, event)),
+    E.map(({ event, sha }) => buildRepositoryInfoFrom(event, eventName, sha))
+  );
 
 export const updateGithubCheck = (
   octokit: GitHub,
-  check: Response<ChecksCreateResponse>,
-  event: IRepositoryInfo,
-  annotations: ChecksUpdateParamsOutputAnnotations[],
-  conclusion: ChecksUpdateParams['conclusion'],
+  check: GetResponseDataTypeFromEndpointMethod<typeof octokit.checks.create>,
+  event: RepositoryInfo,
+  annotations: Annotations,
+  conclusion: Conclusions,
   message?: string
-) =>
-  TE.tryCatch(
-    () =>
-      octokit.checks.update({
-        check_run_id: check.data.id,
-        owner: event.owner,
-        name: check.data.name,
-        repo: event.repo,
-        status: 'completed',
-        conclusion,
-        completed_at: new Date().toISOString(),
-        output: {
-          title: check.data.name,
-          summary: message
-            ? message
-            : conclusion === 'success'
-            ? 'Lint completed successfully'
-            : 'Lint completed with some errors',
+) => {
+  const chunkedAnnotations = chunk(annotations);
 
-          // TODO: Split calls when annotations.length > 50
-          // From https://octokit.github.io/rest.js/v17#checks-update
-          // => "The Checks API limits the number of annotations to a maximum of 50 per API request.
-          // To create more than 50 annotations, you have to make multiple requests to the Update a check run endpoint."
-          annotations,
-        },
-      }),
-    E.toError
+  const updateAttempts = chunkedAnnotations.map(annotationChunk =>
+    TE.tryCatch(
+      () =>
+        octokit.checks.update({
+          check_run_id: check.id,
+          owner: event.owner,
+          name: check.name,
+          repo: event.repo,
+          status: 'completed',
+          conclusion,
+          completed_at: new Date().toISOString(),
+          output: {
+            title: check.name,
+            summary: message
+              ? message
+              : conclusion === 'success'
+              ? 'Lint completed successfully'
+              : 'Lint completed with some errors',
+
+            annotations: annotationChunk,
+          },
+        }),
+      E.toError
+    )
   );
+
+  return sequenceTaskEither(updateAttempts);
+};
