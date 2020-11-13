@@ -1,4 +1,4 @@
-FROM node:12 as builder
+FROM node:14 as builder
 
 COPY package.json yarn.lock ./
 RUN yarn
@@ -11,7 +11,7 @@ RUN yarn build
 
 ###############################################################
 
-FROM node:12 as dependencies
+FROM node:14 as dependencies
 
 ENV NODE_ENV production
 COPY package.json yarn.lock ./
