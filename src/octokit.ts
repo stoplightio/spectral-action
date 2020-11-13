@@ -66,15 +66,16 @@ function buildRepositoryInfoFrom(event: Event, eventName: string, sha: string): 
   return { owner, repo, eventName, sha };
 }
 
+const decodeEvent = (event: unknown) =>
+  pipe(
+    EventDecoder.decode(event),
+    E.mapLeft(errors => new Error(D.draw(errors)))
+  );
+
 const parseEventFile = (eventPath: string) =>
   pipe(
     E.tryCatch<Error, unknown>(() => require(eventPath), E.toError),
-    E.chain(event =>
-      pipe(
-        EventDecoder.decode(event),
-        E.mapLeft(errors => new Error(D.draw(errors)))
-      )
-    )
+    E.chain(decodeEvent)
   );
 
 export const getRepositoryInfoFromEvent = (eventPath: string, eventName: string): E.Either<Error, RepositoryInfo> =>
