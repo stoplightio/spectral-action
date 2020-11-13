@@ -2,8 +2,12 @@ import { getOctokit } from '@actions/github';
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import * as D from 'io-ts/Decoder';
+import { sequence } from 'fp-ts/Array';
 import type { Endpoints, GetResponseDataTypeFromEndpointMethod } from '@octokit/types';
 import { pipe } from 'fp-ts/pipeable';
+import { chunk } from 'lodash';
+
+const sequenceTaskEither = sequence(TE.taskEither);
 
 export type Annotations = NonNullable<
   NonNullable<Endpoints['PATCH /repos/:owner/:repo/check-runs/:check_run_id']['parameters']['output']>['annotations']
@@ -93,31 +97,34 @@ export const updateGithubCheck = (
   annotations: Annotations,
   conclusion: Conclusions,
   message?: string
-) =>
-  TE.tryCatch(
-    () =>
-      octokit.checks.update({
-        check_run_id: check.id,
-        owner: event.owner,
-        name: check.name,
-        repo: event.repo,
-        status: 'completed',
-        conclusion,
-        completed_at: new Date().toISOString(),
-        output: {
-          title: check.name,
-          summary: message
-            ? message
-            : conclusion === 'success'
-            ? 'Lint completed successfully'
-            : 'Lint completed with some errors',
+) => {
+  const chunkedAnnotations = chunk(annotations);
 
-          // TODO: Split calls when annotations.length > 50
-          // From https://octokit.github.io/rest.js/v17#checks-update
-          // => "The Checks API limits the number of annotations to a maximum of 50 per API request.
-          // To create more than 50 annotations, you have to make multiple requests to the Update a check run endpoint."
-          annotations,
-        },
-      }),
-    E.toError
+  const updateAttempts = chunkedAnnotations.map(annotationChunk =>
+    TE.tryCatch(
+      () =>
+        octokit.checks.update({
+          check_run_id: check.id,
+          owner: event.owner,
+          name: check.name,
+          repo: event.repo,
+          status: 'completed',
+          conclusion,
+          completed_at: new Date().toISOString(),
+          output: {
+            title: check.name,
+            summary: message
+              ? message
+              : conclusion === 'success'
+              ? 'Lint completed successfully'
+              : 'Lint completed with some errors',
+
+            annotations: annotationChunk,
+          },
+        }),
+      E.toError
+    )
   );
+
+  return sequenceTaskEither(updateAttempts);
+};
