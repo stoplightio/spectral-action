@@ -15,7 +15,7 @@ import * as IO from 'fp-ts/IO';
 import * as TE from 'fp-ts/TaskEither';
 import * as T from 'fp-ts/Task';
 import * as E from 'fp-ts/Either';
-import { draw } from 'io-ts/Decoder';
+import * as D from 'io-ts/Decoder';
 import { pipe } from 'fp-ts/pipeable';
 import { identity } from 'lodash';
 import { ChecksUpdateParamsOutputAnnotations } from '@octokit/rest';
@@ -109,7 +109,7 @@ const getEnv = IO.of(process.env);
 const decodeConfig = (env: NodeJS.ProcessEnv) =>
   pipe(
     Config.decode(env),
-    E.mapLeft(e => new Error(draw(e)))
+    E.mapLeft(e => new Error(D.draw(e)))
   );
 
 const createConfigFromEnv = pipe(

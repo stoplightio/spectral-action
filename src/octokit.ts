@@ -2,8 +2,6 @@ import { GitHub } from '@actions/github';
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import * as D from 'io-ts/Decoder';
-import { draw } from 'io-ts/Decoder';
-import { Do } from 'fp-ts-contrib/lib/Do';
 import { ChecksCreateResponse, ChecksUpdateParamsOutputAnnotations, ChecksUpdateParams, Response } from '@octokit/rest';
 import { pipe } from 'fp-ts/pipeable';
 
@@ -68,16 +66,18 @@ const parseEventFile = (eventPath: string) =>
     E.chain(event =>
       pipe(
         EventDecoder.decode(event),
-        E.mapLeft(errors => new Error(draw(errors)))
+        E.mapLeft(errors => new Error(D.draw(errors)))
       )
     )
   );
 
 export const getRepositoryInfoFromEvent = (eventPath: string, eventName: string): E.Either<Error, IRepositoryInfo> =>
-  Do(E.either)
-    .bind('event', parseEventFile(eventPath))
-    .bindL('sha', ({ event }) => extractSha(eventName, event))
-    .return(({ event, sha }) => buildRepositoryInfoFrom(event, eventName, sha));
+  pipe(
+    parseEventFile(eventPath),
+    E.bindTo('event'),
+    E.bind('sha', ({ event }) => extractSha(eventName, event)),
+    E.map(({ event, sha }) => buildRepositoryInfoFrom(event, eventName, sha))
+  );
 
 export const updateGithubCheck = (
   octokit: GitHub,
