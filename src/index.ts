@@ -124,67 +124,42 @@ const createConfigFromEnv = pipe(
 
 const program = pipe(
   TE.fromIOEither(createConfigFromEnv),
-  TE.chain(
-    ({
-      INPUT_EVENT_NAME,
-      GITHUB_EVENT_PATH,
-      INPUT_REPO_TOKEN,
-      GITHUB_WORKSPACE,
-      INPUT_FILE_GLOB,
-      INPUT_SPECTRAL_RULESET,
-    }) =>
-      pipe(
-        TE.fromEither(getRepositoryInfoFromEvent(GITHUB_EVENT_PATH, INPUT_EVENT_NAME)),
-        TE.chainEitherK(event =>
-          pipe(
-            createOctokitInstance(INPUT_REPO_TOKEN),
-            E.map(octokit => ({ octokit, event }))
-          )
-        ),
-        TE.chain(({ octokit, event }) =>
-          pipe(
-            createGithubCheck(octokit, event, `${CHECK_NAME} (${event.eventName})`),
-            TE.map(check => ({ octokit, event, check }))
-          )
-        ),
-        TE.chain(({ octokit, event, check }) =>
-          pipe(
-            readFilesToAnalyze(INPUT_FILE_GLOB, GITHUB_WORKSPACE),
-            TE.chain(fileContents => createSpectralAnnotations(INPUT_SPECTRAL_RULESET, fileContents, GITHUB_WORKSPACE)),
-            TE.chain(annotations =>
-              pipe(
-                updateGithubCheck(
-                  octokit,
-                  check.data,
-                  event,
-                  annotations,
-                  annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
-                ),
-                TE.map(checkResponse => {
-                  info(
-                    `Check run '${checkResponse.data.name}' concluded with '${checkResponse.data.conclusion}' (${checkResponse.data.html_url})`
-                  );
-                  info(
-                    `Commit ${event.sha} has been annotated (https://github.com/${event.owner}/${event.repo}/commit/${event.sha})`
-                  );
+  TE.bindTo('config'),
+  TE.bind('repositoryInfo', ({ config }) =>
+    TE.fromEither(getRepositoryInfoFromEvent(config.GITHUB_EVENT_PATH, config.INPUT_EVENT_NAME))
+  ),
+  TE.bind('octokit', ({ config }) => TE.fromEither(createOctokitInstance(config.INPUT_REPO_TOKEN))),
+  TE.bind('check', ({ octokit, repositoryInfo }) =>
+    createGithubCheck(octokit, repositoryInfo, `${CHECK_NAME} (${repositoryInfo.eventName})`)
+  ),
+  TE.bind('fileContents', ({ config }) => readFilesToAnalyze(config.INPUT_FILE_GLOB, config.GITHUB_WORKSPACE)),
+  TE.bind('annotations', ({ fileContents, config }) =>
+    createSpectralAnnotations(config.INPUT_SPECTRAL_RULESET, fileContents, config.GITHUB_WORKSPACE)
+  ),
+  TE.bind('checkResponse', ({ octokit, check, repositoryInfo, annotations }) =>
+    updateGithubCheck(
+      octokit,
+      check.data,
+      repositoryInfo,
+      annotations,
+      annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
+    )
+  ),
+  TE.map(({ checkResponse, repositoryInfo, annotations }) => {
+    info(
+      `Check run '${checkResponse.data.name}' concluded with '${checkResponse.data.conclusion}' (${checkResponse.data.html_url})`
+    );
+    info(
+      `Commit ${repositoryInfo.sha} has been annotated (https://github.com/${repositoryInfo.owner}/${repositoryInfo.repo}/commit/${repositoryInfo.sha})`
+    );
 
-                  const fatalErrors = annotations.filter(a => a.annotation_level === 'failure');
-                  if (fatalErrors.length > 0) {
-                    setFailed(`${pluralizer(fatalErrors.length, 'fatal issue')} detected. Failing the process.`);
-                  }
+    const fatalErrors = annotations.filter(a => a.annotation_level === 'failure');
+    if (fatalErrors.length > 0) {
+      setFailed(`${pluralizer(fatalErrors.length, 'fatal issue')} detected. Failing the process.`);
+    }
 
-                  return checkResponse;
-                })
-              )
-            ),
-            TE.orElse(e => {
-              setFailed(e.message);
-              return updateGithubCheck(octokit, check.data, event, [], 'failure', e.message);
-            })
-          )
-        )
-      )
-  )
+    return checkResponse;
+  })
 );
 
 program().then(result =>
