@@ -22,7 +22,7 @@ RUN ./bin/node-prune
 
 ###############################################################
 
-FROM node:12-alpine as runtime
+FROM node:14-alpine as runtime
 
 ENV NODE_ENV production
 
