@@ -5,7 +5,7 @@ import { promises as fs } from 'fs';
 import { array } from 'fp-ts/Array';
 import { flatten } from 'lodash';
 import { Config } from './config';
-import { runSpectral, createSpectral, fileWithContent } from './spectral';
+import { runSpectral, createSpectral, FileWithContent } from './spectral';
 import { pluralizer } from './utils';
 import {
   Annotations,
@@ -29,7 +29,7 @@ import * as path from 'path';
 const CHECK_NAME = 'Lint';
 const traverseTask = array.traverse(T.task);
 
-const createSpectralAnnotations = (ruleset: string, parsed: fileWithContent[], basePath: string) =>
+const createSpectralAnnotations = (ruleset: string, parsed: FileWithContent[], basePath: string) =>
   pipe(
     createSpectral(ruleset),
     TE.chain(spectral => {
@@ -96,11 +96,11 @@ const readFilesToAnalyze = (pattern: string, workingDir: string) => {
         traverseTask(fileList, path =>
           pipe(
             readFile(path),
-            TE.map<string, fileWithContent>(content => ({ path, content }))
+            TE.map<string, FileWithContent>(content => ({ path, content }))
           )
         ),
         T.map(e => {
-          const separated = array.partitionMap<E.Either<Error, fileWithContent>, Error, fileWithContent>(e, identity);
+          const separated = array.partitionMap<E.Either<Error, FileWithContent>, Error, FileWithContent>(e, identity);
           separated.left.map(e => warning(`Unable to read file: ${e.message}`));
           return E.right(separated.right);
         })
