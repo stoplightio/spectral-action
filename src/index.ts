@@ -118,8 +118,8 @@ const decodeConfig = (env: NodeJS.ProcessEnv) =>
   );
 
 const createConfigFromEnv = pipe(
-  IOEither.ioEither.fromIO<Error, NodeJS.ProcessEnv>(getEnv),
-  IOEither.chain(env => IOEither.fromEither(decodeConfig(env)))
+  IOEither.fromIO<Error, NodeJS.ProcessEnv>(getEnv),
+  IOEither.chainEitherK(env => decodeConfig(env))
 );
 
 const program = pipe(
