@@ -35,7 +35,7 @@
     "@octokit/request": "^5.4.10",
     "@octokit/rest": "^18.0.9",
     "@stoplight/spectral": "^5.7.1",
-    "fast-glob": "^3.2.4",
+    "fast-glob": "^3.2.5",
     "fp-ts": "^2.8.5",
     "io-ts": "^2.2.12",
     "lodash": "^4.17.20",
