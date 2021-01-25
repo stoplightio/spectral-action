@@ -28,9 +28,9 @@ import * as path from 'path';
 const CHECK_NAME = 'Lint';
 const traverseTask = array.traverse(T.task);
 
-const createSpectralAnnotations = (ruleset: string, parsed: FileWithContent[], basePath: string) =>
+const createSpectralAnnotations = (ruleset: string, parsed: FileWithContent[], basePath: string, useNimma: boolean) =>
   pipe(
-    createSpectral(ruleset),
+    createSpectral(ruleset, useNimma),
     TE.chain(spectral => {
       const spectralRuns = parsed.map(v =>
         pipe(
@@ -133,7 +133,7 @@ const program = pipe(
   ),
   TE.bind('fileContents', ({ config }) => readFilesToAnalyze(config.INPUT_FILE_GLOB, config.GITHUB_WORKSPACE)),
   TE.bind('annotations', ({ fileContents, config }) =>
-    createSpectralAnnotations(config.INPUT_SPECTRAL_RULESET, fileContents, config.GITHUB_WORKSPACE)
+    createSpectralAnnotations(config.INPUT_SPECTRAL_RULESET, fileContents, config.GITHUB_WORKSPACE, config.INPUT_USE_NIMMA)
   ),
   TE.bind('checkResponse', ({ octokit, check, repositoryInfo, annotations }) =>
     updateGithubCheck(
