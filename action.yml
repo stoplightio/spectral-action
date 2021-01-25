@@ -25,6 +25,10 @@ inputs:
     description: |
       The name of the event that triggered the workflow
     default: ${{ github.event_name }}
+  use_nimma:
+    required: false
+    description: Use the experimental JSON Path engine
+    default: 'false'
 runs:
   using: docker
   image: Dockerfile
