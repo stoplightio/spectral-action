@@ -52,14 +52,14 @@ const retrieveSpectralPackageVersion = (): IOEither.IOEither<Error, string> =>
     return String(x.version);
   }, E.toError);
 
-export const createSpectral = (rulesetPath: string) =>
+export const createSpectral = (rulesetPath: string, useNimma: boolean) =>
   pipe(
     TE.fromIOEither(retrieveSpectralPackageVersion()),
     TE.chain(spectralPackageVersion =>
       TE.tryCatch(async () => {
         info(`Running Spectral v${spectralPackageVersion}`);
 
-        const spectral = new Spectral({ resolver: httpAndFileResolver });
+        const spectral = new Spectral({ resolver: httpAndFileResolver, useNimma: useNimma });
         spectral.registerFormat('oas2', isOpenApiv2);
         spectral.registerFormat('oas3', isOpenApiv3);
         spectral.registerFormat('json-schema', isJSONSchema);
