@@ -31,15 +31,15 @@
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@actions/github": "^4.0.0",
-    "@octokit/graphql": "^4.5.7",
-    "@octokit/request": "^5.4.10",
-    "@octokit/rest": "^18.0.9",
-    "@stoplight/spectral": "^5.7.1",
-    "fast-glob": "^3.2.4",
-    "fp-ts": "^2.8.5",
-    "io-ts": "^2.2.12",
+    "@octokit/graphql": "^4.6.0",
+    "@octokit/request": "^5.4.14",
+    "@octokit/rest": "^18.1.0",
+    "@stoplight/spectral": "^5.8.0",
+    "fast-glob": "^3.2.5",
+    "fp-ts": "^2.9.5",
+    "io-ts": "^2.2.14",
     "lodash": "^4.17.20",
-    "tslib": "^2.0.3"
+    "tslib": "^2.1.0"
   },
   "husky": {
     "hooks": {
