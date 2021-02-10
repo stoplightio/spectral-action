@@ -10,9 +10,9 @@ import { chunk } from 'lodash';
 const sequenceTaskEither = sequence(TE.taskEither);
 
 export type Annotations = NonNullable<
-  NonNullable<Endpoints['PATCH /repos/:owner/:repo/check-runs/:check_run_id']['parameters']['output']>['annotations']
+  NonNullable<Endpoints['PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}']['parameters']['output']>['annotations']
 >;
-type Conclusions = Endpoints['PATCH /repos/:owner/:repo/check-runs/:check_run_id']['parameters']['conclusion'];
+type Conclusions = Endpoints['PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}']['parameters']['conclusion'];
 type GitHub = ReturnType<typeof getOctokit>;
 
 const EventDecoder = D.type({
