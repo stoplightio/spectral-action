@@ -108,7 +108,12 @@ const readFilesToAnalyze = (pattern: string, workingDir: string) => {
   );
 };
 
-const getEnv = IO.of(process.env);
+const getEnv = IO.of(
+  Object.entries(process.env).reduce(
+    (p, [k, v]) => ({ ...p, [k]: ['true', 'false'].includes(v || '') ? v == 'true' : v }),
+    {}
+  )
+);
 
 const decodeConfig = (env: NodeJS.ProcessEnv) =>
   pipe(
@@ -133,7 +138,12 @@ const program = pipe(
   ),
   TE.bind('fileContents', ({ config }) => readFilesToAnalyze(config.INPUT_FILE_GLOB, config.GITHUB_WORKSPACE)),
   TE.bind('annotations', ({ fileContents, config }) =>
-    createSpectralAnnotations(config.INPUT_SPECTRAL_RULESET, fileContents, config.GITHUB_WORKSPACE, config.INPUT_USE_NIMMA)
+    createSpectralAnnotations(
+      config.INPUT_SPECTRAL_RULESET,
+      fileContents,
+      config.GITHUB_WORKSPACE,
+      config.INPUT_USE_NIMMA
+    )
   ),
   TE.bind('checkResponse', ({ octokit, check, repositoryInfo, annotations }) =>
     updateGithubCheck(
