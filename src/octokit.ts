@@ -4,7 +4,7 @@ import * as E from 'fp-ts/Either';
 import * as D from 'io-ts/Decoder';
 import { sequence } from 'fp-ts/Array';
 import type { Endpoints, GetResponseDataTypeFromEndpointMethod } from '@octokit/types';
-import { pipe } from 'fp-ts/pipeable';
+import { pipe } from 'fp-ts/function';
 import { chunk } from 'lodash';
 
 const sequenceTaskEither = sequence(TE.taskEither);
@@ -15,15 +15,29 @@ export type Annotations = NonNullable<
 type Conclusions = Endpoints['PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}']['parameters']['conclusion'];
 type GitHub = ReturnType<typeof getOctokit>;
 
-const EventDecoder = D.type({
-  after: D.string,
-  repository: D.type({
-    name: D.string,
-    owner: D.type({
-      login: D.string,
+const RepositoryStruct = D.struct({
+  name: D.string,
+  owner: D.struct({
+    login: D.string,
+  }),
+});
+
+const PullRequestEvent = D.struct({
+  after: D.nullable(D.string),
+  repository: RepositoryStruct,
+  pull_request: D.struct({
+    head: D.struct({
+      sha: D.string,
     }),
   }),
 });
+
+const PushEvent = D.struct({
+  after: D.string,
+  repository: RepositoryStruct,
+});
+
+const EventDecoder = D.union(PullRequestEvent, PushEvent);
 
 type Event = D.TypeOf<typeof EventDecoder>;
 
