@@ -70,7 +70,7 @@ export const createSpectral = (rulesetPath: string, useNimma: boolean) =>
         spectral.registerFormat('json-schema-2019-09', isJSONSchemaDraft2019_09);
 
         const normRuleSetPath = normalizeRulesetPath(rulesetPath);
-        const ruleset = await getRuleset(normRuleSetPath);
+        const ruleset = await getRuleset(normRuleSetPath, {});
         info(`Loading ruleset '${rulesetPath}'...`);
         info(`Loading built-in rulesets...`);
         spectral.setRuleset(ruleset);

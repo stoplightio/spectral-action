@@ -22,15 +22,21 @@ const RepositoryStruct = D.struct({
   }),
 });
 
-const PullRequestEvent = D.struct({
-  after: D.nullable(D.string),
-  repository: RepositoryStruct,
-  pull_request: D.struct({
-    head: D.struct({
-      sha: D.string,
+const PullRequestEvent = pipe(
+  D.struct({
+    repository: RepositoryStruct,
+    pull_request: D.struct({
+      head: D.struct({
+        sha: D.string,
+      }),
     }),
   }),
-});
+  D.intersect(
+    D.partial({
+      after: D.string,
+    })
+  )
+);
 
 const PushEvent = D.struct({
   after: D.string,
