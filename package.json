@@ -36,7 +36,7 @@
     "@octokit/rest": "^18.1.0",
     "@stoplight/spectral": "^5.9.1",
     "fast-glob": "^3.2.5",
-    "fp-ts": "^2.9.5",
+    "fp-ts": "^2.10.5",
     "io-ts": "^2.2.16",
     "lodash": "^4.17.21",
     "tslib": "^2.1.0"
