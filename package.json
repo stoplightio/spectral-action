@@ -17,11 +17,15 @@
   "bugs": {
     "url": "https://github.com/XVincentX/spectral-action/issues"
   },
+  "engines": {
+    "node": ">=12.20"
+  },
   "homepage": "https://github.com/XVincentX/spectral-action#readme",
   "devDependencies": {
     "@octokit/types": "^6.8.2",
     "@types/lodash": "^4.14.165",
     "@types/node": "^14.14.7",
+    "@types/pluralize": "^0.0.29",
     "@types/urijs": "^1.19.13",
     "husky": "^4.3.0",
     "prettier": "^2.1.2",
@@ -29,17 +33,23 @@
     "typescript": "^4.0.5"
   },
   "dependencies": {
-    "@actions/core": "^1.2.6",
+    "@actions/core": "^1.5.0",
     "@actions/github": "^4.0.0",
     "@octokit/graphql": "^4.6.0",
     "@octokit/request": "^5.4.14",
     "@octokit/rest": "^18.1.0",
-    "@stoplight/spectral": "^5.9.1",
-    "fast-glob": "^3.2.5",
+    "@stoplight/spectral-core": "^1.4.0",
+    "@stoplight/spectral-parsers": "^1.0.0",
+    "@stoplight/spectral-ref-resolver": "^1.0.0",
+    "@stoplight/spectral-ruleset-migrator": "^1.4.2",
+    "@stoplight/spectral-rulesets": ">=1",
+    "@stoplight/types": "^12.3.0",
+    "fast-glob": "^3.2.7",
     "fp-ts": "^2.9.5",
     "io-ts": "^2.2.16",
     "lodash": "^4.17.21",
-    "tslib": "^2.1.0"
+    "pluralize": "^8.0.0",
+    "tslib": "^2.3.1"
   },
   "husky": {
     "hooks": {

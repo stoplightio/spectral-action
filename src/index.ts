@@ -5,7 +5,7 @@ import { promises as fs } from 'fs';
 import { array } from 'fp-ts/Array';
 import { Config } from './config';
 import { runSpectral, createSpectral, FileWithContent } from './spectral';
-import { pluralizer } from './utils';
+import pluralize from 'pluralize';
 import {
   Annotations,
   createGithubCheck,
@@ -28,9 +28,9 @@ import * as path from 'path';
 const CHECK_NAME = 'Lint';
 const traverseTask = array.traverse(T.task);
 
-const createSpectralAnnotations = (ruleset: string, parsed: FileWithContent[], basePath: string, useNimma: boolean) =>
+const createSpectralAnnotations = (ruleset: string, parsed: FileWithContent[], basePath: string) =>
   pipe(
-    createSpectral(ruleset, useNimma),
+    createSpectral(ruleset),
     TE.chain(spectral => {
       const spectralRuns = parsed.map(v =>
         pipe(
@@ -41,7 +41,7 @@ const createSpectralAnnotations = (ruleset: string, parsed: FileWithContent[], b
             if (results.length === 0) {
               info(' No issue detected');
             } else {
-              info(` /!\\ ${pluralizer(results.length, 'issue')} detected`);
+              info(` /!\\ ${pluralize('issue', results.length)} detected`);
             }
 
             return { path: v.path, results };
@@ -87,7 +87,7 @@ const readFilesToAnalyze = (pattern: string, workingDir: string) => {
   return pipe(
     TE.tryCatch(() => glob(path), E.toError),
     TE.map(fileList => {
-      info(`Using glob '${pattern}' under '${workingDir}', found ${pluralizer(fileList.length, 'file')} to lint`);
+      info(`Using glob '${pattern}' under '${workingDir}', found ${pluralize('file', fileList.length)} to lint`);
       return fileList;
     }),
     TE.chain(fileList =>
@@ -138,12 +138,7 @@ const program = pipe(
   ),
   TE.bind('fileContents', ({ config }) => readFilesToAnalyze(config.INPUT_FILE_GLOB, config.GITHUB_WORKSPACE)),
   TE.bind('annotations', ({ fileContents, config }) =>
-    createSpectralAnnotations(
-      config.INPUT_SPECTRAL_RULESET,
-      fileContents,
-      config.GITHUB_WORKSPACE,
-      config.INPUT_USE_NIMMA
-    )
+    createSpectralAnnotations(config.INPUT_SPECTRAL_RULESET, fileContents, config.GITHUB_WORKSPACE)
   ),
   TE.bind('checkResponse', ({ octokit, check, repositoryInfo, annotations }) =>
     updateGithubCheck(
@@ -164,7 +159,7 @@ const program = pipe(
 
     const fatalErrors = annotations.filter(a => a.annotation_level === 'failure');
     if (fatalErrors.length > 0) {
-      setFailed(`${pluralizer(fatalErrors.length, 'fatal issue')} detected. Failing the process.`);
+      setFailed(`${pluralize('fatal issue', fatalErrors.length)} detected. Failing the process.`);
     }
 
     return checkResponse;
