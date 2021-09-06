@@ -11,8 +11,7 @@ inputs:
     description: |
       Custom ruleset to load in Spectral.
 
-      When unspecified, will try to load the default `.spectral.yaml` ruleset if it exists.
-      Otherwise, the default built-in Spectral rulesets will be loaded.
+      When unspecified, will try to load the default ruleset (matching .spectral.{yaml,yml,js,json}) if it exists.
   repo_token:
     required: true
     description: |
@@ -25,10 +24,6 @@ inputs:
     description: |
       The name of the event that triggered the workflow
     default: ${{ github.event_name }}
-  use_nimma:
-    required: false
-    description: Use the experimental JSON Path engine
-    default: 'false'
 runs:
   using: docker
   image: Dockerfile

@@ -61,3 +61,6 @@ typings/
 .next
 
 dist
+
+# JetBrains IDEs
+.idea/
