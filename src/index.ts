@@ -68,10 +68,10 @@ const createSpectralAnnotations = (ruleset: string, parsed: FileWithContent[], b
               message: vl.message,
               title: String(vl.code),
               start_line: 1 + vl.range.start.line,
-              end_line: 1 + vl.range.end.line,
+              end_line: 1 + vl.range.start.line,
               start_column: sameLine ? vl.range.start.character : undefined,
               end_column: sameLine ? vl.range.end.character : undefined,
-              path: path.relative(basePath, validationResult.path),
+              path: path.relative(basePath, vl.source || validationResult.path),
             };
           });
         })
