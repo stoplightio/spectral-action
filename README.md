@@ -35,4 +35,4 @@ jobs:
 
 ## Configuration
 
-Spectral Action will respect your [Spectral Rulesets](https://stoplight.io/p/docs/gh/stoplightio/spectral/docs/getting-started/rulesets.md), which can be defined, extended, and overriden by placing `.spectral.yml` in the root of your repository.
+Spectral Action will respect your [Spectral Rulesets](https://meta.stoplight.io/docs/spectral/ZG9jOjYyMDc0NA-rulesets), which can be defined, extended, and overriden by placing `.spectral.yml` in the root of your repository.
