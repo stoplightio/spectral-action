@@ -41,7 +41,7 @@
     "@stoplight/spectral-core": "^1.4.0",
     "@stoplight/spectral-parsers": "^1.0.0",
     "@stoplight/spectral-ref-resolver": "^1.0.0",
-    "@stoplight/spectral-ruleset-migrator": "^1.4.2",
+    "@stoplight/spectral-ruleset-migrator": "^1.7.2",
     "@stoplight/spectral-rulesets": ">=1",
     "@stoplight/types": "^12.3.0",
     "fast-glob": "^3.2.7",
