@@ -2,7 +2,8 @@ swagger: '2.0'
 info:
   version: '1.0'
   title: To-do Demo
-  description: Hello
+  description: Hella
+  summary: thsi is summary
   contact:
     name: Stoplight
     url:
