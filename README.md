@@ -5,7 +5,7 @@ This action uses [Spectral](https://github.com/stoplightio/spectral) from [Stopl
 ![](./image.png)
 
 ## Usage
-
+--test
 See [action.yml](action.yml)
 
 ```yaml
