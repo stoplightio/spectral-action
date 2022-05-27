@@ -1257,5 +1257,33 @@
     "refSiblings",
     "typedEnum"
   ],
-  "functionsDir": ".stoplight/custom-functions"
+  "functionsDir": ".stoplight/custom-functions",
+  "overrides": [
+    {
+      "files": [
+        "fixtures/test.oas.yml#/paths/~1todos/get",
+        "fixtures/non_existent.yml#/paths/~1todos/get"
+      ],
+      "rules": {
+        "some-inherited-rule": "off"
+      }
+    },
+    {
+      "files": [
+        "fixtures/non_existent.yml#"
+      ],
+      "rules": {
+        "oas3-api-servers": "off",
+        "openapi-tags": "off"
+      }
+    },
+    {
+      "files": [
+        "fixtures/non_existent.yml#/info"
+      ],
+      "rules": {
+        "info-contact": "off"
+      }
+    }
+  ]
 }
