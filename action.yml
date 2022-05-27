@@ -28,5 +28,5 @@ runs:
   using: docker
   image: Dockerfile
 branding:
-  icon: code
-  color: yellow
+  icon: check-square
+  color: blue
