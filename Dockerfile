@@ -1,4 +1,4 @@
-FROM node:14 as builder
+FROM node:16 as builder
 
 COPY package.json yarn.lock ./
 RUN yarn
@@ -11,7 +11,7 @@ RUN yarn build
 
 ###############################################################
 
-FROM node:14 as dependencies
+FROM node:16 as dependencies
 
 ENV NODE_ENV production
 COPY package.json yarn.lock ./
@@ -22,7 +22,7 @@ RUN node-prune
 
 ###############################################################
 
-FROM node:14-alpine as runtime
+FROM node:16-alpine as runtime
 
 ENV NODE_ENV production
 
