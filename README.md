@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v2
 
       # Run Spectral
-      - uses: stoplightio/spectral-action@v0.8.0
+      - uses: stoplightio/spectral-action@v0.8.3
         with:
           file_glob: 'doc/api/*.yaml'
 ```
