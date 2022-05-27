@@ -37,6 +37,4 @@ jobs:
 
 Spectral Action will respect your [Spectral Rulesets](https://meta.stoplight.io/docs/spectral/01baf06bdd05a-rulesets), which can be defined, extended, and overriden by placing `.spectral.yml` in the root of your repository.
 
-However, if you'd like to simply use a core ruleset without additional configuration, create a `.spectral.yml` in you repository's root with only the contents:
-
-> extends: ["spectral:{rulesetTagHere}"]
+However, if you'd like to simply use a core ruleset without additional configuration, create a `.spectral.yml` in you repository's root with only the contents: `extends: ["spectral:{rulesetTagHere}"]`
