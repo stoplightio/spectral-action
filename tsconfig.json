@@ -20,6 +20,18 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "resolveJsonModule": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      // can be removed when we set moduleResolution to nodenext
+      "@stoplight/spectral-ruleset-bundler/with-loader": [
+        "./node_modules/@stoplight/spectral-ruleset-bundler/dist/loader/browser"
+      ],
+      "@stoplight/spectral-ruleset-bundler/presets/*": [
+        "./node_modules/@stoplight/spectral-ruleset-bundler/dist/presets/*"
+      ],
+      "@stoplight/spectral-ruleset-bundler/plugins/*": [
+        "./node_modules/@stoplight/spectral-ruleset-bundler/dist/plugins/*"
+      ]
+    }
   }
 }
