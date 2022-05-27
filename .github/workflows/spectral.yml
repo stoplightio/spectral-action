@@ -16,5 +16,5 @@ jobs:
           spectral_ruleset: .spectral.json
         continue-on-error: true
 
-      - if: steps.expect-failure.output.status == 'failure'
+      - if: ${{ failure() }}
         run: exit 0
