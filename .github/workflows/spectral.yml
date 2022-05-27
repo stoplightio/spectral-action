@@ -10,6 +10,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Test this action against an incorrect file.
         id: expect-failure
+        continue-on-error: true
         uses: ./
         with:
           file_glob: ./fixtures/*.yml
