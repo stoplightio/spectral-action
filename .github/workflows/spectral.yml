@@ -14,7 +14,6 @@ jobs:
         with:
           file_glob: ./fixtures/*.yml
           spectral_ruleset: .spectral.json
-        continue-on-error: true
 
       - if: ${{ failure() }}
         run: exit 0
