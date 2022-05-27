@@ -5,7 +5,9 @@ on:
     types: [published, edited]
 
 jobs:
-  latest-tagger:
-    runs-on: ubuntu-latest
+  actions-tagger:
+    runs-on: windows-latest
     steps:
-      - uses: EndBug/latest-tag@latest
+      - uses: Actions-R-Us/actions-tagger@latest
+        with:
+          publish_latest_tag: true
