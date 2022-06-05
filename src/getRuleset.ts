@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as process from 'process';
 import type { Optional } from '@stoplight/types';
 import { Ruleset } from '@stoplight/spectral-core';
-import { info, error } from '@actions/core';
+import { info, error, setFailed } from '@actions/core';
 import * as path from '@stoplight/path';
 import { fetch } from '@stoplight/spectral-runtime';
 import type { IO } from '@stoplight/spectral-ruleset-bundler';
@@ -29,9 +29,10 @@ export async function getRuleset(rulesetFile: Optional<string>): Promise<Ruleset
   }
 
   if (!rulesetFile) {
-    throw new Error(
-      'No ruleset has been found. Please provide a ruleset using the spectral_ruleset option, or make sure your ruleset file matches .?spectral.(js|ya?ml|json)'
-    );
+    // throw new Error(
+    //   'No ruleset has been found. Please provide a ruleset using the spectral_ruleset option, or make sure your ruleset file matches .?spectral.(js|ya?ml|json)'
+    // );
+    setFailed('failed');
   }
 
   info(`Loading ruleset '${rulesetFile}'...`);
