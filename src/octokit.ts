@@ -6,6 +6,7 @@ import { sequence } from 'fp-ts/Array';
 import type { Endpoints, GetResponseDataTypeFromEndpointMethod } from '@octokit/types';
 import { pipe } from 'fp-ts/function';
 import { chunk } from 'lodash';
+import { info } from 'console';
 
 const sequenceTaskEither = sequence(TE.taskEither);
 
@@ -119,7 +120,7 @@ export const updateGithubCheck = (
   message?: string
 ) => {
   const chunkedAnnotations = annotations.length ? chunk(annotations) : [[]];
-
+  info(`here??`);
   const updateAttempts = chunkedAnnotations.map(annotationChunk =>
     TE.tryCatch(
       () =>
