@@ -25,7 +25,7 @@ import { pipe } from 'fp-ts/pipeable';
 import { identity } from 'lodash';
 import * as path from 'path';
 
-const CHECK_NAME = 'Lint';
+const CHECK_NAME = 'Linttttt';
 const traverseTask = array.traverse(T.task);
 
 const createSpectralAnnotations = (ruleset: string, parsed: FileWithContent[], basePath: string) =>
