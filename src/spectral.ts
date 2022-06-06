@@ -8,7 +8,7 @@ import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import { pipe } from 'fp-ts/pipeable';
 
-import { info } from '@actions/core';
+import { info, setFailed } from '@actions/core';
 import { getRuleset } from './getRuleset';
 
 const retrieveSpectralPackageVersion = (): IOEither.IOEither<Error, string> =>
@@ -29,8 +29,8 @@ export const createSpectral = (rulesetPath: string) =>
           const ruleset = await getRuleset(rulesetPath);
           spectral.setRuleset(ruleset);
         } catch (e) {
-          // setFailed(e.message);
-          throw e;
+          setFailed(e.message);
+          return spectral;
         }
 
         const loadedRules = Object.values(spectral.ruleset!.rules);
