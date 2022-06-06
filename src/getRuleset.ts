@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as process from 'process';
 import type { Optional } from '@stoplight/types';
 import { Ruleset } from '@stoplight/spectral-core';
-import { info, error, setFailed } from '@actions/core';
+import { info, error } from '@actions/core';
 import * as path from '@stoplight/path';
 import { fetch } from '@stoplight/spectral-runtime';
 import type { IO } from '@stoplight/spectral-ruleset-bundler';
