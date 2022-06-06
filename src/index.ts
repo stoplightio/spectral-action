@@ -133,12 +133,12 @@ const program = pipe(
     TE.fromEither(getRepositoryInfoFromEvent(config.GITHUB_EVENT_PATH, config.INPUT_EVENT_NAME))
   ),
   TE.bind('octokit', ({ config }) => TE.fromEither(createOctokitInstance(config.INPUT_REPO_TOKEN))),
-  TE.bind('check', ({ octokit, repositoryInfo }) =>
-    createGithubCheck(octokit, repositoryInfo, `${CHECK_NAME} (${repositoryInfo.eventName})`)
-  ),
   TE.bind('fileContents', ({ config }) => readFilesToAnalyze(config.INPUT_FILE_GLOB, config.GITHUB_WORKSPACE)),
   TE.bind('annotations', ({ fileContents, config }) =>
     createSpectralAnnotations(config.INPUT_SPECTRAL_RULESET, fileContents, config.GITHUB_WORKSPACE)
+  ),
+  TE.bind('check', ({ octokit, repositoryInfo }) =>
+    createGithubCheck(octokit, repositoryInfo, `${CHECK_NAME} (${repositoryInfo.eventName})`)
   ),
   TE.bind('checkResponse', ({ octokit, check, repositoryInfo, annotations }) =>
     updateGithubCheck(
