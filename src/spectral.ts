@@ -31,11 +31,11 @@ export const createSpectral = (rulesetPath: string) =>
 
           const loadedRules = Object.values(spectral.ruleset!.rules);
           info(` - ${pluralize('rule', loadedRules.length)} (${loadedRules.filter(r => r.enabled).length} enabled)`);
-
-          return spectral;
         } catch (e) {
           setFailed(e.message);
         }
+
+        return spectral;
       }, E.toError)
     )
   );
