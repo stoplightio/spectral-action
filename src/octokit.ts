@@ -6,7 +6,6 @@ import { sequence } from 'fp-ts/Array';
 import type { Endpoints, GetResponseDataTypeFromEndpointMethod } from '@octokit/types';
 import { pipe } from 'fp-ts/function';
 import { chunk } from 'lodash';
-import { info } from 'console';
 
 const sequenceTaskEither = sequence(TE.taskEither);
 
