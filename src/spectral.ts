@@ -8,7 +8,7 @@ import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import { pipe } from 'fp-ts/pipeable';
 
-import { info, setFailed } from '@actions/core';
+import { info } from '@actions/core';
 import { getRuleset } from './getRuleset';
 
 const retrieveSpectralPackageVersion = (): IOEither.IOEither<Error, string> =>
