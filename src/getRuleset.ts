@@ -29,7 +29,6 @@ export async function getRuleset(rulesetFile: Optional<string>): Promise<Ruleset
   }
 
   if (!rulesetFile) {
-    setFailed('failed');
     throw new Error(
       'No ruleset has been found. Please provide a ruleset using the spectral_ruleset option, or make sure your ruleset file matches .?spectral.(js|ya?ml|json)'
     );
