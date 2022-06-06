@@ -29,7 +29,7 @@ export const createSpectral = (rulesetPath: string) =>
           const ruleset = await getRuleset(rulesetPath);
           spectral.setRuleset(ruleset);
         } catch (e) {
-          setFailed(e.message);
+          // setFailed(e.message);
           throw e;
         }
 
