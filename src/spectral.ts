@@ -30,7 +30,7 @@ export const createSpectral = (rulesetPath: string) =>
           spectral.setRuleset(ruleset);
         } catch (e) {
           setFailed(e.message);
-          throw Error;
+          throw e;
         }
 
         const loadedRules = Object.values(spectral.ruleset!.rules);
