@@ -157,10 +157,6 @@ const program = pipe(
       );
     });
 
-    if (annotations.length === 0) {
-      setFailed(`failed`);
-    }
-
     const fatalErrors = annotations.filter(a => a.annotation_level === 'failure');
     if (fatalErrors.length > 0) {
       setFailed(`${pluralize('fatal issue', fatalErrors.length)} detected. Failing the process.`);
