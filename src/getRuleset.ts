@@ -14,6 +14,7 @@ async function getDefaultRulesetFile(): Promise<Optional<string>> {
   const cwd = process.cwd();
   for (const filename of await fs.promises.readdir(cwd)) {
     if (Ruleset.isDefaultRulesetFile(filename)) {
+      info(`default found!`);
       return path.join(cwd, filename);
     }
   }
