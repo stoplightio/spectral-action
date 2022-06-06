@@ -28,14 +28,14 @@ export const createSpectral = (rulesetPath: string) =>
         try {
           const ruleset = await getRuleset(rulesetPath);
           spectral.setRuleset(ruleset);
+
+          const loadedRules = Object.values(spectral.ruleset!.rules);
+          info(` - ${pluralize('rule', loadedRules.length)} (${loadedRules.filter(r => r.enabled).length} enabled)`);
+
+          return spectral;
         } catch (e) {
           setFailed(e.message);
         }
-
-        const loadedRules = Object.values(spectral.ruleset!.rules);
-        info(` - ${pluralize('rule', loadedRules.length)} (${loadedRules.filter(r => r.enabled).length} enabled)`);
-
-        return spectral;
       }, E.toError)
     )
   );
