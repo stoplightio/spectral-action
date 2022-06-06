@@ -120,7 +120,6 @@ export const updateGithubCheck = (
   message?: string
 ) => {
   const chunkedAnnotations = annotations.length ? chunk(annotations) : [[]];
-  info(`here??`);
   const updateAttempts = chunkedAnnotations.map(annotationChunk =>
     TE.tryCatch(
       () =>
@@ -148,4 +147,27 @@ export const updateGithubCheck = (
   );
 
   return sequenceTaskEither(updateAttempts);
+};
+
+export const failGithubCheck = (
+  octokit: GitHub,
+  check: GetResponseDataTypeFromEndpointMethod<typeof octokit.checks.create>,
+  event: RepositoryInfo
+) => {
+  TE.tryCatch(
+    () =>
+      octokit.checks.update({
+        check_run_id: check.id,
+        owner: event.owner,
+        name: check.name,
+        repo: event.repo,
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        output: {
+          title: check.name,
+          summary: 'Failed',
+        },
+      }),
+    E.toError
+  );
 };
