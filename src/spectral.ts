@@ -31,7 +31,8 @@ export const createSpectral = (rulesetPath: string) =>
           const loadedRules = Object.values(spectral.ruleset!.rules);
           info(` - ${pluralize('rule', loadedRules.length)} (${loadedRules.filter(r => r.enabled).length} enabled)`);
         } catch (e) {
-          setFailed(e as Error);
+          setFailed('Issue loading ruleset');
+          throw e;
         }
 
         return spectral;
