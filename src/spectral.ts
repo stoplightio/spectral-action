@@ -8,7 +8,7 @@ import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import { pipe } from 'fp-ts/pipeable';
 
-import { info } from '@actions/core';
+import { info, setFailed } from '@actions/core';
 import { getRuleset } from './getRuleset';
 
 const retrieveSpectralPackageVersion = (): IOEither.IOEither<Error, string> =>
@@ -25,7 +25,14 @@ export const createSpectral = (rulesetPath: string) =>
         info(`Running @stoplight/spectral-core v${spectralPackageVersion}`);
 
         const spectral = new Spectral({ resolver: httpAndFileResolver });
-        spectral.setRuleset(await getRuleset(rulesetPath));
+
+        try {
+          const ruleset = await getRuleset(rulesetPath);
+          spectral.setRuleset(ruleset);
+        } catch (e) {
+          setFailed('Issue loading ruleset');
+          throw e;
+        }
 
         const loadedRules = Object.values(spectral.ruleset!.rules);
         info(` - ${pluralize('rule', loadedRules.length)} (${loadedRules.filter(r => r.enabled).length} enabled)`);
