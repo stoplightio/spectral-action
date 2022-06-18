@@ -17,9 +17,6 @@ ENV NODE_ENV production
 COPY package.json yarn.lock ./
 RUN yarn --production
 
-RUN curl -sfL https://install.goreleaser.com/github.com/tj/node-prune.sh | bash
-RUN ./bin/node-prune
-
 ###############################################################
 
 FROM node:14-alpine as runtime
