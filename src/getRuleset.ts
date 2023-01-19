@@ -39,7 +39,7 @@ export async function getRuleset(rulesetFile: Optional<string>): Promise<Ruleset
   const io: IO = { fetch, fs };
 
   try {
-    return await bundleAndLoadRuleset(rulesetFile, io, [commonjs(), builtins()]);
+    return await bundleAndLoadRuleset(rulesetFile, io, [builtins(), commonjs()]);
   } catch (e) {
     error(`Failed to load ruleset '${rulesetFile}'... Error: ${String(e)}`);
     throw e;
