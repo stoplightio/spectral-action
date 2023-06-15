@@ -149,11 +149,11 @@ const program = pipe(
       annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
     )
   ),
-  TE.map(({ checkResponse, repositoryInfo, annotations }) => {
+  TE.map(({ config, checkResponse, repositoryInfo, annotations }) => {
     checkResponse.map(res => {
       info(`Check run '${res.data.name}' concluded with '${res.data.conclusion}' (${res.data.html_url})`);
       info(
-        `Commit ${repositoryInfo.sha} has been annotated (https://github.com/${repositoryInfo.owner}/${repositoryInfo.repo}/commit/${repositoryInfo.sha})`
+        `Commit ${repositoryInfo.sha} has been annotated (${config.GITHUB_SERVER_URL}/${repositoryInfo.owner}/${repositoryInfo.repo}/commit/${repositoryInfo.sha})`
       );
     });
 

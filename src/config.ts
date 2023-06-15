@@ -7,6 +7,7 @@ export const Config = D.type({
   INPUT_FILE_GLOB: D.string,
   INPUT_EVENT_NAME: D.string,
   INPUT_SPECTRAL_RULESET: D.string,
+  GITHUB_SERVER_URL: D.string,
 });
 
 export type Config = D.TypeOf<typeof Config>;
