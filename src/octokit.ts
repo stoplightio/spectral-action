@@ -72,6 +72,7 @@ export interface RepositoryInfo {
 const extractSha = (eventName: string, event: any): E.Either<Error, string> => {
   switch (eventName) {
     case 'pull_request':
+    case 'pull_request_target':
       return E.right(event.pull_request ? event.pull_request.head.sha : event.after);
     case 'push':
       return E.right(event.after);
