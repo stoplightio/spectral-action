@@ -11,13 +11,21 @@ RUN yarn build
 
 ###############################################################
 
+FROM golang:1.18 as nodeprune
+
+# Build node-prune from source
+RUN go install github.com/tj/node-prune@latest
+
+###############################################################
+
 FROM node:16 as dependencies
 
 ENV NODE_ENV production
 COPY package.json yarn.lock ./
 RUN yarn --production
 
-RUN curl -sf https://gobinaries.com/tj/node-prune | sh
+# Copy node-prune binary built from source
+COPY --from=nodeprune /go/bin/node-prune /usr/local/bin/node-prune
 RUN node-prune
 
 ###############################################################
