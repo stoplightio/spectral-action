@@ -17,8 +17,13 @@ ENV NODE_ENV production
 COPY package.json yarn.lock ./
 RUN yarn --production
 
-RUN curl -sf https://gobinaries.com/tj/node-prune | sh
-RUN node-prune
+RUN curl -L https://github.com/tj/node-prune/releases/download/v1.0.1/node-prune_1.0.1_linux_amd64.tar.gz -o node-prune.tar.gz \
+    && tar -xzf node-prune.tar.gz \
+    && mv node-prune /usr/local/bin/node-prune \
+    && chmod +x /usr/local/bin/node-prune \
+    && rm -f node-prune.tar.gz \
+    && node-prune
+
 
 ###############################################################
 
