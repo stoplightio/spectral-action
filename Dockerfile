@@ -1,4 +1,4 @@
-FROM node:16 as builder
+FROM public.ecr.aws/docker/library/node:16 as builder
 
 COPY package.json yarn.lock ./
 RUN yarn
