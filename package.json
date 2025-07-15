@@ -38,7 +38,7 @@
     "@octokit/graphql": "^4.6.0",
     "@octokit/request": "^5.4.14",
     "@octokit/rest": "^18.1.0",
-    "@stoplight/spectral-core": "^1.18.3",
+    "@stoplight/spectral-core": "^1.20.0",
     "@stoplight/spectral-parsers": "^1.0.3",
     "@stoplight/spectral-ref-resolver": "^1.0.4",
     "@stoplight/spectral-ruleset-bundler": "^1.5.2",
