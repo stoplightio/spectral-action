@@ -1,4 +1,5 @@
-FROM node:16 as builder
+###############################################################
+FROM node:18 as builder
 
 COPY package.json yarn.lock ./
 RUN yarn
@@ -10,15 +11,13 @@ RUN yarn
 RUN yarn build
 
 ###############################################################
-
 FROM golang:1.18 as nodeprune
 
 # Build node-prune from source
 RUN go install github.com/tj/node-prune@latest
 
 ###############################################################
-
-FROM node:16 as dependencies
+FROM node:18 as dependencies
 
 ENV NODE_ENV production
 COPY package.json yarn.lock ./
@@ -29,8 +28,7 @@ COPY --from=nodeprune /go/bin/node-prune /usr/local/bin/node-prune
 RUN node-prune
 
 ###############################################################
-
-FROM node:16-alpine as runtime
+FROM node:18-alpine as runtime
 
 ENV NODE_ENV production
 
