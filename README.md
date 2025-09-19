@@ -14,6 +14,10 @@ name: Run Spectral on Pull Requests
 on:
   - pull_request
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   build:
     name: Run Spectral
