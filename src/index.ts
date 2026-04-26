@@ -14,7 +14,7 @@ import {
   updateGithubCheck,
 } from './octokit';
 import glob from 'fast-glob';
-import { error, info, setFailed } from '@actions/core';
+import { error, info, notice, setFailed } from '@actions/core';
 import * as IOEither from 'fp-ts/IOEither';
 import * as IO from 'fp-ts/IO';
 import * as TE from 'fp-ts/TaskEither';
@@ -138,16 +138,24 @@ const program = pipe(
     createSpectralAnnotations(config.INPUT_SPECTRAL_RULESET, fileContents, config.GITHUB_WORKSPACE)
   ),
   TE.bind('check', ({ octokit, repositoryInfo }) =>
-    createGithubCheck(octokit, repositoryInfo, `${CHECK_NAME} (${repositoryInfo.eventName})`)
+    pipe(
+      createGithubCheck(octokit, repositoryInfo, `${CHECK_NAME} (${repositoryInfo.eventName})`),
+      TE.orElse(e => {
+        warning(`Could not create GitHub check run (fork PR?): ${e.message}`);
+        return TE.right(null as any);
+      })
+    )
   ),
   TE.bind('checkResponse', ({ octokit, check, repositoryInfo, annotations }) =>
-    updateGithubCheck(
-      octokit,
-      check.data,
-      repositoryInfo,
-      annotations,
-      annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
-    )
+    check === null
+      ? TE.right([] as any[])
+      : updateGithubCheck(
+          octokit,
+          check.data,
+          repositoryInfo,
+          annotations,
+          annotations.findIndex(f => f.annotation_level === 'failure') === -1 ? 'success' : 'failure'
+        )
   ),
   TE.map(({ config, checkResponse, repositoryInfo, annotations }) => {
     checkResponse.map(res => {
@@ -156,6 +164,19 @@ const program = pipe(
         `Commit ${repositoryInfo.sha} has been annotated (${config.GITHUB_SERVER_URL}/${repositoryInfo.owner}/${repositoryInfo.repo}/commit/${repositoryInfo.sha})`
       );
     });
+
+    if (checkResponse.length === 0) {
+      annotations.forEach(a => {
+        const props = { title: a.title, file: a.path, startLine: a.start_line, endLine: a.end_line };
+        if (a.annotation_level === 'failure') {
+          error(a.message, props);
+        } else if (a.annotation_level === 'warning') {
+          warning(a.message, props);
+        } else {
+          notice(a.message, props);
+        }
+      });
+    }
 
     const fatalErrors = annotations.filter(a => a.annotation_level === 'failure');
     if (fatalErrors.length > 0) {
@@ -170,7 +191,7 @@ program().then(result =>
   pipe(
     result,
     E.fold(
-      e => error(e.message),
+      e => setFailed(e.message),
       () => info('Analysis is complete')
     )
   )
